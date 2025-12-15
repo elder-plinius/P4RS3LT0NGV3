@@ -51,10 +51,26 @@ let indexContent = fs.readFileSync(templatePath, 'utf8');
 
 // Find the tool-content-container
 const startMarker = '<div id="tool-content-container">';
-const endMarker = '</div>\n\n        </div>\n\n                    <!-- Copy History Panel -->';
+// Try Unix line endings first, then Windows (CRLF), then flexible regex
+const endMarkerUnix = '</div>\n\n        </div>\n\n                    <!-- Copy History Panel -->';
+const endMarkerWindows = '</div>\r\n            </div>\r\n\r\n                    <!-- Copy History Panel -->';
 
 const startIndex = indexContent.indexOf(startMarker);
-const endIndex = indexContent.indexOf(endMarker);
+let endIndex = indexContent.indexOf(endMarkerUnix);
+
+// Fallback to Windows line endings
+if (endIndex === -1) {
+    endIndex = indexContent.indexOf(endMarkerWindows);
+}
+
+// Final fallback: use regex for flexible whitespace matching
+if (endIndex === -1) {
+    const endMarkerRegex = /<\/div>\s*<\/div>\s*<!-- Copy History Panel -->/;
+    const match = indexContent.match(endMarkerRegex);
+    if (match) {
+        endIndex = match.index;
+    }
+}
 
 if (startIndex === -1 || endIndex === -1) {
     console.error('\n❌ Could not find tool content container markers');
