@@ -10,7 +10,7 @@ export default new BaseTransformer({
             const suitable = [
                 'base64', 'binary', 'hex', 'morse', 'rot13', 'caesar', 'atbash', 'rot5',
                 'upside_down', 'bubble', 'small_caps', 'fullwidth', 'leetspeak', 'superscript', 'subscript',
-                'quenya', 'tengwar', 'klingon', 'dovahzul', 'elder_futhark',
+                'quenya', 'tengwar', 'klingon', 'dovahzul', 'standard_galactic', 'elder_futhark',
                 'hieroglyphics', 'ogham', 'mathematical', 'cursive', 'medieval',
                 'monospace', 'greek', 'braille', 'alternating_case', 'reverse_words',
                 'title_case', 'sentence_case', 'camel_case', 'snake_case', 'kebab_case', 'random_case',
