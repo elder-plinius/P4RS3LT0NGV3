@@ -45,7 +45,7 @@ P4RS3LT0NGV3/
 │       ├── case/            # Camel, Kebab, Snake, Title, etc.
 │       ├── cipher/          # Caesar, ROT13, Vigenère, Atbash, etc.
 │       ├── encoding/        # Base64, Hex, Binary, URL, etc.
-│       ├── fantasy/         # Quenya, Tengwar, Klingon, Aurebesh, Dovahzul
+│       ├── fantasy/         # Quenya, Tengwar, Klingon, Aurebesh, Dovahzul, Minecraft
 │       ├── format/          # Leetspeak, Pig Latin, Reverse, etc.
 │       ├── special/         # Randomizer
 │       ├── technical/       # Morse, NATO, Braille, Brainfuck, etc.
