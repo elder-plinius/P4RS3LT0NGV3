@@ -66,7 +66,7 @@ class TranslateTool extends Tool {
                 { code: 'ar', name: 'Arabic', flag: 'SA' },
                 { code: 'ru', name: 'Russian', flag: 'RU' },
                 { code: 'hi', name: 'Hindi', flag: 'IN' },
-                { code: 'pt', name: 'Portuguese', flag: 'PT' }
+                { code: 'pt', name: 'Portuguese', flag: 'PR' }
             ],
             translateExoticLangs: [
                 { code: 'la', name: 'Latin', flag: 'VA', label: 'Dead' },
