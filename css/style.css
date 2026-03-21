@@ -509,7 +509,7 @@ label small {
 }
 
 .container {
-    max-width: 900px;
+    max-width: 1200px;
     width: 100%;
     margin: 0 auto;
     padding: 24px;
@@ -2856,7 +2856,57 @@ html {
     position: relative;
 }
 
-/* Keep the transform input visible while scrolling */
+/* === Two-column split layout for Transforms tab === */
+.transform-split-layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 20px;
+    align-items: start;
+}
+
+.transform-left-col {
+    position: sticky;
+    top: 12px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+}
+
+.transform-left-col .input-section {
+    background: var(--secondary-bg);
+    border: 1px solid var(--input-border);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    border-radius: 6px;
+    padding: 12px;
+}
+
+.transform-left-col .input-section textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.transform-left-col .output-section {
+    margin-top: 0;
+    padding: 12px;
+    border-radius: 6px;
+    background: var(--main-bg-color);
+    border: 1px solid rgba(100, 181, 246, 0.3);
+}
+
+.transform-left-col .output-section textarea {
+    min-height: 80px;
+    max-height: 40vh;
+    resize: vertical;
+}
+
+.transform-right-col {
+    min-width: 0;
+}
+
+/* Keep the transform input visible while scrolling (single-column fallback) */
 .transform-layout .input-section {
     position: sticky;
     top: 8px;
@@ -3411,12 +3461,21 @@ html {
 
 /* Medium screens (900px) */
 @media (max-width: 900px) {
-    .steg-split-layout { 
-        grid-template-columns: 1fr; 
+    .steg-split-layout {
+        grid-template-columns: 1fr;
     }
-    .steg-advanced-sidebar { 
-        position: relative; 
-        top: 0; 
+    .steg-advanced-sidebar {
+        position: relative;
+        top: 0;
+    }
+    .transform-split-layout {
+        grid-template-columns: 1fr;
+    }
+    .transform-left-col {
+        position: relative;
+        top: 0;
+        max-height: none;
+        overflow-y: visible;
     }
 }
 

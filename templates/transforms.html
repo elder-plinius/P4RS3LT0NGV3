@@ -1,14 +1,42 @@
 <div v-if="activeTab === 'transforms'" class="tab-content">
-                <div class="transform-layout">
-                    <div class="input-section">
-                        <textarea 
-                            id="transform-input" 
-                            v-model="transformInput" 
-                            placeholder="Enter text to transform..."
-                            @input="autoTransform"
-                        ></textarea>
+                <div class="transform-layout transform-split-layout">
+                    <!-- LEFT COLUMN: Input + Output (sticky) -->
+                    <div class="transform-left-col">
+                        <div class="input-section">
+                            <textarea
+                                id="transform-input"
+                                v-model="transformInput"
+                                placeholder="Enter text to transform..."
+                                @input="autoTransform"
+                            ></textarea>
+                        </div>
+
+                        <div class="output-section" v-if="transformOutput">
+                            <div class="output-heading">
+                                <h4>
+                                    <i class="fas fa-check-circle"></i>
+                                    Transformed
+                                    <small v-if="activeTransform">({{ activeTransform.name }})</small>
+                                </h4>
+                            </div>
+                            <div class="output-container">
+                                <textarea
+                                    readonly
+                                    v-model="transformOutput"
+                                    aria-label="Transformed text output"
+                                ></textarea>
+                                <button class="copy-button" @click="copyToClipboard(transformOutput)" title="Copy to clipboard">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                            <div class="output-instructions">
+                                <small><i class="fas fa-info-circle"></i> Auto-copied. Use Decoder tab to reverse.</small>
+                            </div>
+                        </div>
                     </div>
 
+                    <!-- RIGHT COLUMN: Transform categories (scrollable) -->
+                    <div class="transform-right-col">
                     <div class="transform-section">
                         <div class="transform-category-legend">
                             <div class="legend-title">Categories:</div>
@@ -275,28 +303,6 @@
                             </template>
                         </div>
                     </div>
-
-                    <div class="output-section" v-if="transformOutput">
-                        <div class="output-heading">
-                            <h4>
-                                <i class="fas fa-check-circle"></i> 
-                                Transformed Message
-                                <small v-if="activeTransform">({{ activeTransform.name }})</small>
-                            </h4>
-                        </div>
-                        <div class="output-container">
-                            <textarea 
-                                readonly 
-                                v-model="transformOutput"
-                                aria-label="Transformed text output"
-                            ></textarea>
-                            <button class="copy-button" @click="copyToClipboard(transformOutput)" title="Copy to clipboard">
-                                <i class="fas fa-copy"></i>
-                            </button>
-                        </div>
-                        <div class="output-instructions">
-                            <small><i class="fas fa-info-circle"></i> Copy this text and share it. Use the Decoder tab to reverse transformations.</small>
-                        </div>
                     </div>
                 </div>
             </div>
