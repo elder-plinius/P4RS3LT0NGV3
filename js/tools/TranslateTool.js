@@ -216,7 +216,7 @@ class TranslateTool extends Tool {
                     'VA': '\uD83C\uDDFB\uD83C\uDDE6', 'GR': '\uD83C\uDDEC\uD83C\uDDF7',
                     'EG': '\uD83C\uDDEA\uD83C\uDDEC', 'GB': '\uD83C\uDDEC\uD83C\uDDE7',
                     'IQ': '\uD83C\uDDEE\uD83C\uDDF6', 'US': '\uD83C\uDDFA\uD83C\uDDF8',
-                    'KE': '\uD83C\uDDF0\uD83C\uDDEA',  'PT': '\uD83C\uDDF5\uD83C\uDDF9'
+                    'KE': '\uD83C\uDDF0\uD83C\uDDEA', 'PT': '\uD83C\uDDF5\uD83C\uDDF9'
 
 
                 };
