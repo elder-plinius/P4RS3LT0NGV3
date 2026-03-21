@@ -84,9 +84,25 @@ A powerful web-based text transformation and steganography tool that can encode/
 - **Fallback Methods**: Tries all available decoders if primary fails
 - **Real-time Processing**: Instant decoding as you type
 
+### 🌐 **AI Translation** (via OpenRouter)
+- **20+ Languages**: Major world languages (Spanish, French, Chinese, Japanese, Korean, etc.)
+- **Dead & Exotic Languages**: Latin, Sanskrit, Ancient Greek, Sumerian, Akkadian, Old English, and more
+- **Custom Languages**: Add any language on-the-fly
+- **Multiple Models**: Gemma 3, Gemini 2.5 Flash, TranslateGemma (purpose-built translation models)
+- **TranslateGemma Prompt Format**: Uses Google's optimized prompt template for high-quality translation
+- **Auto-Fallback**: If a model is unavailable, automatically falls back to Gemma 3 27B
+
+### 🪄 **PromptCraft** (AI Prompt Mutation)
+- **9 Mutation Strategies**: Rephrase, Obfuscate, Role-Play Wrap, Multi-Language, Expand, Compress, Metaphor, Fragment, and Custom
+- **48+ Models**: Frontier (Claude, GPT, Gemini, Grok), Reasoning (o3, o4, DeepSeek R1), Fast (Haiku, Mini), Code-specialized, Open Source (Llama, Qwen), and Search/Research models
+- **Parallel Variants**: Generate 1-10 variants simultaneously with diverse temperature settings
+- **Copy & Iterate**: Copy any variant or feed it back as input for iterative refinement
+
 ### 🛠️ **Available Tools**
 - **Universal Decoder**: Auto-detect and decode any supported format
 - **Text Transforms**: 79+ encoding, cipher, and transformation options
+- **AI Translation**: Translate to 20+ languages via OpenRouter (built into Transforms tab)
+- **PromptCraft**: AI-powered prompt mutation and crafting (dedicated tab)
 - **Steganography**: Emoji and invisible text steganography
 - **Tokenade Generator**: High-density token payload builder
 - **Mutation Lab (Fuzzer)**: Generate diverse text mutations
@@ -101,6 +117,16 @@ A powerful web-based text transformation and steganography tool that can encode/
 - **Keyboard Shortcuts**: Quick access to features
 - **Responsive Design**: Works on all device sizes
 - **Accessibility**: Screen reader friendly with proper ARIA labels
+
+### 🔑 **OpenRouter API Key Setup**
+Translation and PromptCraft features require an [OpenRouter](https://openrouter.ai/) API key:
+1. Create an account at [openrouter.ai](https://openrouter.ai/)
+2. Generate an API key (starts with `sk-or-...`)
+3. In P4RS3LT0NGV3, click the **sliders icon** (top-right) to open **Advanced Settings**
+4. Paste your key and click **Save Key**
+5. Your key is stored locally in your browser only — never sent anywhere except OpenRouter
+
+> **Tip:** Some models (like Gemma 3) are free on OpenRouter. Frontier models (Claude, GPT, Gemini Pro) require credits.
 
 ## 🚀 **Getting Started**
 
@@ -171,6 +197,9 @@ npm run test:steg          # Test steganography options
 - ✅ **Reverse Functions**: Added missing reverse functions for many transforms
 
 ### **New Features**
+- 🆕 **AI Translation**: Translate to 20+ languages (including dead/exotic) via OpenRouter using TranslateGemma prompt format
+- 🆕 **PromptCraft Tool**: AI-powered prompt mutation with 9 strategies and 48+ models
+- 🆕 **OpenRouter Integration**: Unified API key management for all AI-powered features
 - 🆕 **79+ Transformations**: Added fantasy, ancient, and technical scripts
 - 🆕 **More Encodings/Ciphers**: Base58, Base62, Vigenère, Rail Fence, Roman Numerals
 - 🆕 **Category Organization**: Better organized transform categories

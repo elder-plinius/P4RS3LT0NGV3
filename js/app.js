@@ -257,8 +257,10 @@ window.app = new Vue({
         },
         
         saveApiKey() {
-            if (this.openrouterApiKey) {
-                localStorage.setItem('openrouter-api-key', this.openrouterApiKey);
+            var trimmed = (this.openrouterApiKey || '').trim();
+            if (trimmed) {
+                this.openrouterApiKey = trimmed;
+                localStorage.setItem('openrouter-api-key', trimmed);
                 this.apiKeySaved = true;
                 this.showNotification('API key saved', 'success');
                 setTimeout(() => { this.apiKeySaved = false; }, 2000);

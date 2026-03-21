@@ -188,9 +188,14 @@ class DecodeTool extends Tool {
                 }
             },
             decoderTranslateToEnglish: async function() {
-                var apiKey = localStorage.getItem('openrouter-api-key') ||
+                var apiKey = (localStorage.getItem('openrouter-api-key') ||
                              localStorage.getItem('plinyos-api-key') ||
-                             localStorage.getItem('openrouter_api_key') || '';
+                             localStorage.getItem('openrouter_api_key') || '').trim();
+                // Fallback: check Vue data property if localStorage is empty
+                if (!apiKey && this.openrouterApiKey) {
+                    apiKey = this.openrouterApiKey.trim();
+                    localStorage.setItem('openrouter-api-key', apiKey);
+                }
                 if (!apiKey) {
                     this.decoderTranslateError = 'No API key. Set your OpenRouter key in Advanced Settings.';
                     return;

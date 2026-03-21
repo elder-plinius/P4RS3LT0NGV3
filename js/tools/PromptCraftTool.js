@@ -93,9 +93,15 @@ class PromptCraftTool extends Tool {
     getVueMethods() {
         return {
             pcGetApiKey: function() {
-                return localStorage.getItem('plinyos-api-key') ||
-                       localStorage.getItem('openrouter-api-key') ||
+                var key = localStorage.getItem('openrouter-api-key') ||
+                       localStorage.getItem('plinyos-api-key') ||
                        localStorage.getItem('openrouter_api_key') || '';
+                // Fallback: if nothing in localStorage, check the Vue data property
+                if (!key && this.openrouterApiKey) {
+                    key = this.openrouterApiKey;
+                    localStorage.setItem('openrouter-api-key', key.trim());
+                }
+                return key.trim();
             },
             pcGetSystemPrompt: function() {
                 const strategyPrompts = {
@@ -143,7 +149,7 @@ class PromptCraftTool extends Tool {
                                 headers: {
                                     'Authorization': 'Bearer ' + apiKey,
                                     'Content-Type': 'application/json',
-                                    'HTTP-Referer': window.location.origin,
+                                    'HTTP-Referer': window.location.href || 'https://p4rs3lt0ngv3.app',
                                     'X-Title': 'P4RS3LT0NGV3 PromptCraft'
                                 },
                                 body: JSON.stringify({
@@ -155,7 +161,12 @@ class PromptCraftTool extends Tool {
                                     temperature: 0.9 + (i * 0.05),
                                     max_tokens: 2048
                                 })
-                            }).then(r => r.json())
+                            }).then(function(r) {
+                                if (r.status === 401) throw new Error('Invalid API key. Check your OpenRouter key in Advanced Settings.');
+                                if (r.status === 402) throw new Error('Insufficient credits on your OpenRouter account.');
+                                if (r.status === 403) throw new Error('Access denied. Your key may lack permissions for this model.');
+                                return r.json();
+                            })
                         );
                     }
 
@@ -165,7 +176,11 @@ class PromptCraftTool extends Tool {
                         if (result.status === 'fulfilled' && result.value.choices && result.value.choices[0]) {
                             outputs.push(result.value.choices[0].message.content.trim());
                         } else if (result.status === 'fulfilled' && result.value.error) {
-                            this.pcError = result.value.error.message || 'API error';
+                            var errMsg = (typeof result.value.error === 'string') ? result.value.error :
+                                (result.value.error.message || 'API error');
+                            this.pcError = errMsg;
+                        } else if (result.status === 'rejected') {
+                            this.pcError = result.reason.message || 'Request failed';
                         }
                     }
                     this.pcOutputs = outputs;
