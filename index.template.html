@@ -119,9 +119,7 @@
                     </div>
                 </div>
             </div>
-        </div>
-        <!-- End of .tabs div -->
-        
+
         <!-- Advanced Settings Panel (inside app so Vue bindings work) -->
         <div id="unicode-options-panel" class="unicode-options-panel">
             <div class="unicode-panel-header">
@@ -136,8 +134,7 @@
                     <div class="api-key-input-row">
                         <input
                             :type="showApiKey ? 'text' : 'password'"
-                            :value="openrouterApiKey"
-                            @input="openrouterApiKey = $event.target.value"
+                            v-model="openrouterApiKey"
                             placeholder="sk-or-..."
                             class="api-key-input"
                             autocomplete="off"
