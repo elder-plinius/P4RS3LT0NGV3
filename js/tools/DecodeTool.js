@@ -154,7 +154,13 @@ class DecodeTool extends Tool {
                     const selectedTransform = this.transforms.find(t => t.name === this.selectedDecoder);
                     if (selectedTransform && selectedTransform.reverse) {
                         try {
-                            const decoded = selectedTransform.reverse(input);
+                            const full = window.transforms && Object.values(window.transforms).find(function(tr) {
+                                return tr.name === selectedTransform.name;
+                            });
+                            const opts = full && typeof window.getMergedTransformOptions === 'function'
+                                ? window.getMergedTransformOptions(full)
+                                : {};
+                            const decoded = selectedTransform.reverse(input, opts);
                             if (decoded && decoded !== input) {
                                 result = {
                                     text: decoded,

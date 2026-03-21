@@ -19,6 +19,7 @@ const vm = require('vm');
 const projectRoot = path.resolve(__dirname, '..');
 
 const transforms = require(path.join(projectRoot, 'src/transformers/loader-node.js'));
+const transformOptionsCode = fs.readFileSync(path.join(projectRoot, 'js/core/transformOptions.js'), 'utf8');
 const decoderCode = fs.readFileSync(path.join(projectRoot, 'js/core/decoder.js'), 'utf8');
 const emojiWordMapCode = fs.readFileSync(path.join(projectRoot, 'src/emojiWordMap.js'), 'utf8');
 const emojiUtilsCode = fs.readFileSync(path.join(projectRoot, 'js/utils/emoji.js'), 'utf8');
@@ -46,6 +47,7 @@ const sandbox = {
 vm.createContext(sandbox);
 vm.runInContext(emojiUtilsCode, sandbox);
 vm.runInContext(emojiWordMapCode, sandbox);
+vm.runInContext(transformOptionsCode, sandbox);
 vm.runInContext(decoderCode, sandbox);
 
 const universalDecode = sandbox.universalDecode;

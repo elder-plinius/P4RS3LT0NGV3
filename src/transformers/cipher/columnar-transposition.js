@@ -5,9 +5,24 @@ export default new BaseTransformer({
     name: 'Columnar Transposition',
     priority: 60,
     category: 'cipher',
-    key: 'KEY', // Default key
-    func: function(text) {
-        const key = (this.key || 'KEY').toUpperCase().replace(/[^A-Z]/g, '');
+    key: 'KEY',
+    configurableOptions: [
+        {
+            id: 'key',
+            label: 'Keyword',
+            type: 'text',
+            default: 'KEY'
+        }
+    ],
+    _key: function(options) {
+        const k = options && options.key !== undefined && options.key !== null
+            ? String(options.key)
+            : null;
+        return (k || this.key || 'KEY').toUpperCase().replace(/[^A-Z]/g, '');
+    },
+    func: function(text, options) {
+        options = options || {};
+        const key = this._key(options);
         if (key.length === 0) return text;
         
         // Remove spaces and convert to uppercase for processing
@@ -41,8 +56,9 @@ export default new BaseTransformer({
         
         return result.join('');
     },
-    reverse: function(text) {
-        const key = (this.key || 'KEY').toUpperCase().replace(/[^A-Z]/g, '');
+    reverse: function(text, options) {
+        options = options || {};
+        const key = this._key(options);
         if (key.length === 0) return text;
         
         const keyLength = key.length;
@@ -79,9 +95,9 @@ export default new BaseTransformer({
         
         return result.join('').replace(/X+$/, ''); // Remove padding X's
     },
-    preview: function(text) {
+    preview: function(text, options) {
         if (!text) return '[columnar]';
-        const result = this.func(text.slice(0, 10));
+        const result = this.func(text.slice(0, 10), options);
         return result.substring(0, 12) + (result.length > 12 ? '...' : '');
     },
     detector: function(text) {

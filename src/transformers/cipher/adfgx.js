@@ -5,7 +5,21 @@ export default new BaseTransformer({
     name: 'ADFGX Cipher',
     priority: 60,
     category: 'cipher',
-    key: 'KEYWORD', // Default transposition key
+    key: 'KEYWORD',
+    configurableOptions: [
+        {
+            id: 'key',
+            label: 'Transposition keyword',
+            type: 'text',
+            default: 'KEYWORD'
+        }
+    ],
+    _transKey: function(options) {
+        const k = options && options.key !== undefined && options.key !== null
+            ? String(options.key)
+            : null;
+        return (k || this.key || 'KEYWORD').toUpperCase().replace(/[^A-Z]/g, '');
+    },
     // ADFGX uses a 5x5 Polybius square with letters A, D, F, G, X as coordinates
     // Standard square (I and J share position)
     square: [
@@ -17,8 +31,9 @@ export default new BaseTransformer({
     ],
     // Coordinate labels
     coords: ['A', 'D', 'F', 'G', 'X'],
-    func: function(text) {
-        const transKey = (this.key || 'KEYWORD').toUpperCase().replace(/[^A-Z]/g, '');
+    func: function(text, options) {
+        options = options || {};
+        const transKey = this._transKey(options);
         if (transKey.length === 0) return text;
         
         const cleaned = text.toUpperCase().replace(/[^A-Z]/g, '');
@@ -79,8 +94,9 @@ export default new BaseTransformer({
         
         return result;
     },
-    reverse: function(text) {
-        const transKey = (this.key || 'KEYWORD').toUpperCase().replace(/[^A-Z]/g, '');
+    reverse: function(text, options) {
+        options = options || {};
+        const transKey = this._transKey(options);
         if (transKey.length === 0) return text;
         
         // Only process ADFGX characters
@@ -153,9 +169,9 @@ export default new BaseTransformer({
         
         return result;
     },
-    preview: function(text) {
+    preview: function(text, options) {
         if (!text) return '[adfgx]';
-        const result = this.func(text.slice(0, 5));
+        const result = this.func(text.slice(0, 5), options);
         return result.substring(0, 12) + (result.length > 12 ? '...' : '');
     },
     detector: function(text) {

@@ -8,7 +8,7 @@ class GibberishTool extends Tool {
             name: 'Gibberish',
             icon: 'fa-comments',
             title: 'Gibberish Generator',
-            order: 8
+            order: 9
         });
     }
     

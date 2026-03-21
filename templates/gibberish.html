@@ -53,8 +53,8 @@
                                 </label>
                             </div>
 
-                            <div class="token-bomb-actions" style="margin: 16px 0;">
-                                <button class="transform-button" @click="sentenceToGibberish"><i class="fas fa-hammer"></i> Generate Gibberish</button>
+                            <div class="token-bomb-actions mutation-actions">
+                                <button type="button" class="transform-button tool-primary-btn" @click="sentenceToGibberish"><i class="fas fa-hammer"></i> Generate Gibberish</button>
                             </div>
 
                             <div v-if="gibberishOutput" class="output-section">
@@ -128,8 +128,8 @@
                                     </label>
                                 </div>
 
-                                <div class="token-bomb-actions" style="margin: 16px 0;">
-                                    <button class="transform-button" @click="generateRandomRemovals">
+                                <div class="token-bomb-actions mutation-actions">
+                                    <button type="button" class="transform-button tool-primary-btn" @click="generateRandomRemovals">
                                         <i class="fas fa-dice"></i> Generate Variations
                                     </button>
                                     <button class="action-button copy" v-if="removalOutputs.length" @click="copyAllRemovals">
@@ -181,8 +181,8 @@
                                     </label>
                                 </div>
 
-                                <div class="token-bomb-actions" style="margin: 16px 0;">
-                                    <button class="transform-button" @click="generateSpecificRemoval">
+                                <div class="token-bomb-actions mutation-actions">
+                                    <button type="button" class="transform-button tool-primary-btn" @click="generateSpecificRemoval">
                                         <i class="fas fa-eraser"></i> Remove Characters
                                     </button>
                                 </div>

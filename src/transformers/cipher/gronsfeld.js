@@ -5,9 +5,24 @@ export default new BaseTransformer({
     name: 'Gronsfeld Cipher',
     priority: 60,
     category: 'cipher',
-    key: '12345', // Default numeric key
-    func: function(text) {
-        const key = (this.key || '12345').replace(/[^0-9]/g, '');
+    key: '12345',
+    configurableOptions: [
+        {
+            id: 'key',
+            label: 'Numeric key (digits)',
+            type: 'text',
+            default: '12345'
+        }
+    ],
+    _key: function(options) {
+        const k = options && options.key !== undefined && options.key !== null
+            ? String(options.key)
+            : null;
+        return (k || this.key || '12345').replace(/[^0-9]/g, '');
+    },
+    func: function(text, options) {
+        options = options || {};
+        const key = this._key(options);
         if (key.length === 0) return text;
         
         let result = '';
@@ -31,8 +46,9 @@ export default new BaseTransformer({
         
         return result;
     },
-    reverse: function(text) {
-        const key = (this.key || '12345').replace(/[^0-9]/g, '');
+    reverse: function(text, options) {
+        options = options || {};
+        const key = this._key(options);
         if (key.length === 0) return text;
         
         let result = '';
@@ -56,9 +72,9 @@ export default new BaseTransformer({
         
         return result;
     },
-    preview: function(text) {
+    preview: function(text, options) {
         if (!text) return '[gronsfeld]';
-        return this.func(text.slice(0, 8)) + (text.length > 8 ? '...' : '');
+        return this.func(text.slice(0, 8), options) + (text.length > 8 ? '...' : '');
     },
     detector: function(text) {
         // Gronsfeld produces ciphertext that looks like scrambled letters

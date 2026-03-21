@@ -2,11 +2,23 @@
                 <div class="transform-layout">
                     <div class="input-section">
                         <textarea 
+                            v-if="transformInputControlKind() === 'textarea'"
                             id="transform-input" 
                             v-model="transformInput" 
                             placeholder="Enter text to transform..."
                             @input="autoTransform"
                         ></textarea>
+                        <input
+                            v-else
+                            id="transform-input"
+                            type="text"
+                            v-model="transformInput"
+                            placeholder="Enter text to transform..."
+                            @input="autoTransform"
+                            autocomplete="off"
+                            autocorrect="off"
+                            spellcheck="false"
+                        />
                     </div>
 
                     <div class="transform-section">
@@ -44,8 +56,15 @@
                                             >
                                                 {{ item.transform.name }}
                                                 <small class="transform-preview" v-if="transformInput">
-                                                    {{ item.transform.preview(transformInput.slice(0, 10)) }}
+                                                    {{ item.transform.preview(transformInput.slice(0, 10), getMergedOptionsForTransform(item.transform.name)) }}
                                                 </small>
+                                                <i
+                                                    v-if="transformHasOptionsUI(item.transform)"
+                                                    class="fas fa-gear transform-options-gear"
+                                                    @click.stop="openTransformOptions(item.transform, $event)"
+                                                    title="Options"
+                                                    :aria-label="'Options for ' + item.transform.name"
+                                                ></i>
                                                 <i 
                                                     @click.stop="toggleFavorite(item.transform.name, $event)"
                                                     :class="'fas fa-star favorite-icon' + (isFavorite(item.transform.name) ? ' favorited' : '')"
@@ -97,8 +116,15 @@
                                             >
                                                 {{ item.transform.name }}
                                                 <small class="transform-preview" v-if="transformInput">
-                                                    {{ item.transform.preview(transformInput.slice(0, 10)) }}
+                                                    {{ item.transform.preview(transformInput.slice(0, 10), getMergedOptionsForTransform(item.transform.name)) }}
                                                 </small>
+                                                <i
+                                                    v-if="transformHasOptionsUI(item.transform)"
+                                                    class="fas fa-gear transform-options-gear"
+                                                    @click.stop="openTransformOptions(item.transform, $event)"
+                                                    title="Options"
+                                                    :aria-label="'Options for ' + item.transform.name"
+                                                ></i>
                                                 <i 
                                                     @click.stop="toggleFavorite(item.transform.name, $event)"
                                                     :class="'fas fa-star favorite-icon' + (isFavorite(item.transform.name) ? ' favorited' : '')"
@@ -329,8 +355,15 @@
                                             >
                                                 {{ transform.name }}
                                                 <small class="transform-preview" v-if="transformInput">
-                                                    {{ transform.preview(transformInput.slice(0, 10)) }}
+                                                    {{ transform.preview(transformInput.slice(0, 10), getMergedOptionsForTransform(transform.name)) }}
                                                 </small>
+                                                <i
+                                                    v-if="transformHasOptionsUI(transform)"
+                                                    class="fas fa-gear transform-options-gear"
+                                                    @click.stop="openTransformOptions(transform, $event)"
+                                                    title="Options"
+                                                    :aria-label="'Options for ' + transform.name"
+                                                ></i>
                                                 <i 
                                                     @click.stop="toggleFavorite(transform.name, $event)"
                                                     :class="'fas fa-star favorite-icon' + (isFavorite(transform.name) ? ' favorited' : '')"
@@ -367,4 +400,97 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Native <template> keeps children out of the layout until Vue runs (no modal flash on load). -->
+                <template v-if="transformOptionsModalOpen && transformOptionsModalTransform">
+                    <div
+                        class="transform-options-backdrop"
+                        @click.self="closeTransformOptions"
+                    >
+                    <div
+                        class="transform-options-panel"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="transform-options-title"
+                        @click.stop
+                    >
+                        <div class="transform-options-panel-header">
+                            <h3 id="transform-options-title">{{ transformOptionsModalTransform.name }}</h3>
+                            <button type="button" class="transform-options-close" @click="closeTransformOptions" title="Close" aria-label="Close">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="transform-options-panel-body">
+                            <div
+                                v-for="opt in transformOptionsModalTransform.configurableOptions"
+                                :key="opt.id"
+                                class="transform-options-field"
+                            >
+                                <label :for="'opt-' + opt.id">{{ opt.label }}</label>
+                                <template v-if="opt.type === 'boolean'">
+                                    <input
+                                        :id="'opt-' + opt.id"
+                                        class="transform-options-checkbox"
+                                        type="checkbox"
+                                        :checked="transformOptionsDraft[opt.id]"
+                                        @change="setTransformOptionDraft(opt.id, $event.target.checked)"
+                                    />
+                                </template>
+                                <template v-else-if="opt.type === 'select'">
+                                    <select
+                                        :id="'opt-' + opt.id"
+                                        class="transform-options-select"
+                                        :value="transformOptionsDraft[opt.id]"
+                                        @change="setTransformOptionDraft(opt.id, $event.target.value)"
+                                    >
+                                        <option
+                                            v-for="choice in opt.options"
+                                            :key="String(choice.value)"
+                                            :value="choice.value"
+                                        >
+                                            {{ choice.label }}
+                                        </option>
+                                    </select>
+                                </template>
+                                <template v-else-if="opt.type === 'text'">
+                                    <input
+                                        :id="'opt-' + opt.id"
+                                        type="text"
+                                        class="transform-options-text"
+                                        :value="transformOptionsDraft[opt.id]"
+                                        autocomplete="off"
+                                        autocorrect="off"
+                                        spellcheck="false"
+                                        @input="setTransformOptionDraft(opt.id, $event.target.value)"
+                                    />
+                                </template>
+                                <template v-else-if="opt.type === 'number'">
+                                    <input
+                                        :id="'opt-' + opt.id"
+                                        type="number"
+                                        class="transform-options-number"
+                                        :value="transformOptionsDraft[opt.id]"
+                                        :min="opt.min != null ? opt.min : null"
+                                        :max="opt.max != null ? opt.max : null"
+                                        :step="opt.step != null ? opt.step : 1"
+                                        inputmode="numeric"
+                                        @input="setTransformOptionDraft(opt.id, $event.target.value === '' ? opt.default : Number($event.target.value))"
+                                    />
+                                </template>
+                            </div>
+                        </div>
+                        <div class="transform-options-panel-actions">
+                            <button type="button" class="transform-options-btn transform-options-btn-secondary" @click="resetTransformOptionsToDefaults">
+                                Reset defaults
+                            </button>
+                            <button type="button" class="transform-options-btn transform-options-btn-secondary" @click="closeTransformOptions">
+                                Cancel
+                            </button>
+                            <button type="button" class="transform-options-btn transform-options-btn-primary" @click="commitTransformOptions">
+                                Save
+                            </button>
+                        </div>
+                    </div>
+                    </div>
+                </template>
             </div>

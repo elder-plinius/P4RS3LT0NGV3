@@ -5,9 +5,24 @@ export default new BaseTransformer({
     name: 'Playfair Cipher',
     priority: 60,
     category: 'cipher',
-    key: 'KEYWORD', // Default key
-    func: function(text) {
-        const key = (this.key || 'KEYWORD').toUpperCase().replace(/[^A-Z]/g, '');
+    key: 'KEYWORD',
+    configurableOptions: [
+        {
+            id: 'key',
+            label: 'Keyword (letters A–Z)',
+            type: 'text',
+            default: 'KEYWORD'
+        }
+    ],
+    _key: function(options) {
+        const k = options && options.key !== undefined && options.key !== null
+            ? String(options.key)
+            : null;
+        return (k || this.key || 'KEYWORD').toUpperCase().replace(/[^A-Z]/g, '');
+    },
+    func: function(text, options) {
+        options = options || {};
+        const key = this._key(options);
         if (key.length === 0) return text;
         
         // Create Playfair square
@@ -54,8 +69,9 @@ export default new BaseTransformer({
         
         return result;
     },
-    reverse: function(text) {
-        const key = (this.key || 'KEYWORD').toUpperCase().replace(/[^A-Z]/g, '');
+    reverse: function(text, options) {
+        options = options || {};
+        const key = this._key(options);
         if (key.length === 0) return text;
         
         const alphabet = 'ABCDEFGHIKLMNOPQRSTUVWXYZ';
@@ -97,9 +113,9 @@ export default new BaseTransformer({
         
         return result;
     },
-    preview: function(text) {
+    preview: function(text, options) {
         if (!text) return '[playfair]';
-        const result = this.func(text.slice(0, 8));
+        const result = this.func(text.slice(0, 8), options);
         return result.substring(0, 10) + (result.length > 10 ? '...' : '');
     },
     detector: function(text) {

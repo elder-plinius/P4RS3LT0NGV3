@@ -5,10 +5,32 @@ export default new BaseTransformer({
     name: 'Hill Cipher',
     priority: 60,
     category: 'cipher',
-    // Default 2x2 key matrix (must be invertible mod 26)
-    key: [[3, 3], [2, 5]], // Default key matrix
-    func: function(text) {
-        const key = this.key || [[3, 3], [2, 5]];
+    key: [[3, 3], [2, 5]],
+    configurableOptions: [
+        {
+            id: 'matrixJson',
+            label: '2×2 matrix (JSON), mod 26',
+            type: 'text',
+            default: '[[3,3],[2,5]]'
+        }
+    ],
+    _keyMatrix: function(options) {
+        const fallback = this.key || [[3, 3], [2, 5]];
+        options = options || {};
+        if (options.matrixJson !== undefined && options.matrixJson !== null && String(options.matrixJson).trim() !== '') {
+            try {
+                const parsed = JSON.parse(String(options.matrixJson));
+                if (Array.isArray(parsed) && parsed.length === 2 && parsed[0].length === 2) {
+                    return parsed;
+                }
+            } catch (e) {
+                /* use fallback */
+            }
+        }
+        return fallback;
+    },
+    func: function(text, options) {
+        const key = this._keyMatrix(options);
         const matrixSize = key.length;
         
         // Prepare text: remove non-letters, pad with X if needed
@@ -40,8 +62,8 @@ export default new BaseTransformer({
         
         return result;
     },
-    reverse: function(text) {
-        const key = this.key || [[3, 3], [2, 5]];
+    reverse: function(text, options) {
+        const key = this._keyMatrix(options);
         const matrixSize = key.length;
         
         // Calculate inverse matrix mod 26
@@ -121,9 +143,9 @@ export default new BaseTransformer({
         
         return (oldS % m + m) % m;
     },
-    preview: function(text) {
+    preview: function(text, options) {
         if (!text) return '[hill]';
-        const result = this.func(text.slice(0, 4));
+        const result = this.func(text.slice(0, 4), options);
         return result.substring(0, 8) + '...';
     },
     detector: function(text) {

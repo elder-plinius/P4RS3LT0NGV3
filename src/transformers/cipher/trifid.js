@@ -5,7 +5,25 @@ export default new BaseTransformer({
     name: 'Trifid Cipher',
     priority: 60,
     category: 'cipher',
-    period: 5, // Period for fractionation (default 5)
+    period: 5,
+    configurableOptions: [
+        {
+            id: 'period',
+            label: 'Period',
+            type: 'number',
+            default: 5,
+            min: 2,
+            max: 20,
+            step: 1
+        }
+    ],
+    _period: function(options) {
+        options = options || {};
+        const p = options.period !== undefined && options.period !== ''
+            ? Number(options.period)
+            : this.period;
+        return Math.max(2, Math.min(30, parseInt(p, 10) || 5));
+    },
     // Trifid uses a 3x3x3 cube (27 positions for A-Z and space/punctuation)
     // Structure: 3 layers, each with 3 rows and 3 columns
     cube: [
@@ -16,8 +34,8 @@ export default new BaseTransformer({
         // Layer 2
         [['S', 'T', 'U'], ['V', 'W', 'X'], ['Y', 'Z', ' ']]
     ],
-    func: function(text) {
-        const period = parseInt(this.period) || 5;
+    func: function(text, options) {
+        const period = this._period(options);
         const cleaned = text.toUpperCase().replace(/[^A-Z ]/g, '');
         if (cleaned.length === 0) return text;
         
@@ -70,8 +88,8 @@ export default new BaseTransformer({
         
         return result;
     },
-    reverse: function(text) {
-        const period = parseInt(this.period) || 5;
+    reverse: function(text, options) {
+        const period = this._period(options);
         const cleaned = text.toUpperCase().replace(/[^A-Z ]/g, '');
         if (cleaned.length === 0) return text;
         
@@ -128,9 +146,9 @@ export default new BaseTransformer({
         
         return result;
     },
-    preview: function(text) {
+    preview: function(text, options) {
         if (!text) return '[trifid]';
-        const result = this.func(text.slice(0, 5));
+        const result = this.func(text.slice(0, 5), options);
         return result.substring(0, 10) + (result.length > 10 ? '...' : '');
     },
     detector: function(text) {

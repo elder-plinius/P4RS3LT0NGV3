@@ -5,9 +5,23 @@ export default new BaseTransformer({
     name: 'XOR Cipher',
     priority: 70,
     category: 'cipher',
-    key: 'KEY', // Default key
-    func: function(text) {
-        const key = this.key || 'KEY';
+    key: 'KEY',
+    configurableOptions: [
+        {
+            id: 'key',
+            label: 'XOR key (string)',
+            type: 'text',
+            default: 'KEY'
+        }
+    ],
+    _key: function(options) {
+        const k = options && options.key !== undefined && options.key !== null
+            ? String(options.key)
+            : null;
+        return k || this.key || 'KEY';
+    },
+    func: function(text, options) {
+        const key = this._key(options || {});
         const keyBytes = new TextEncoder().encode(key);
         const textBytes = new TextEncoder().encode(text);
         const result = new Uint8Array(textBytes.length);
@@ -21,12 +35,11 @@ export default new BaseTransformer({
             .map(b => b.toString(16).padStart(2, '0'))
             .join('');
     },
-    reverse: function(text) {
-        // XOR is self-reciprocal, but we need to convert from hex first
+    reverse: function(text, options) {
         try {
             const hexBytes = text.match(/.{1,2}/g) || [];
             const bytes = new Uint8Array(hexBytes.map(h => parseInt(h, 16)));
-            const key = this.key || 'KEY';
+            const key = this._key(options || {});
             const keyBytes = new TextEncoder().encode(key);
             const result = new Uint8Array(bytes.length);
             
@@ -39,9 +52,9 @@ export default new BaseTransformer({
             return text;
         }
     },
-    preview: function(text) {
+    preview: function(text, options) {
         if (!text) return '[xor]';
-        const result = this.func(text.slice(0, 4));
+        const result = this.func(text.slice(0, 4), options);
         return result.substring(0, 12) + '...';
     },
     detector: function(text) {

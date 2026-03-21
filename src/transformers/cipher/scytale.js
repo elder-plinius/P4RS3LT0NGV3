@@ -5,9 +5,27 @@ export default new BaseTransformer({
     name: 'Scytale Cipher',
     priority: 60,
     category: 'cipher',
-    key: 5, // Default number of columns (wrapping width)
-    func: function(text) {
-        const key = parseInt(this.key) || 5;
+    key: 5,
+    configurableOptions: [
+        {
+            id: 'columns',
+            label: 'Columns (rod width)',
+            type: 'number',
+            default: 5,
+            min: 2,
+            max: 40,
+            step: 1
+        }
+    ],
+    _cols: function(options) {
+        options = options || {};
+        const c = options.columns !== undefined && options.columns !== ''
+            ? Number(options.columns)
+            : this.key;
+        return parseInt(c, 10) || 5;
+    },
+    func: function(text, options) {
+        const key = this._cols(options);
         if (key < 2) return text;
         
         // Remove spaces for encoding
@@ -39,8 +57,8 @@ export default new BaseTransformer({
         
         return result;
     },
-    reverse: function(text) {
-        const key = parseInt(this.key) || 5;
+    reverse: function(text, options) {
+        const key = this._cols(options);
         if (key < 2) return text;
         
         const cleaned = text.replace(/\s/g, '').toUpperCase();
@@ -74,9 +92,9 @@ export default new BaseTransformer({
         
         return result;
     },
-    preview: function(text) {
+    preview: function(text, options) {
         if (!text) return '[scytale]';
-        const result = this.func(text.slice(0, 10));
+        const result = this.func(text.slice(0, 10), options);
         return result.substring(0, 12) + (result.length > 12 ? '...' : '');
     },
     detector: function(text) {

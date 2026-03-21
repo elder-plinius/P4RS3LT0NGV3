@@ -28,17 +28,17 @@
                         <div class="token-bomb-controls options-grid hacker-controls">
                             <label class="slider-block" title="Nesting levels; higher = more layers of grouping. Tip: Increasing depth/breadth grows size multiplicatively.">
                                 Depth (nesting)
-                                <input class="hacker-slider" type="range" v-model.number="tbDepth" min="1" max="8" />
+                                <input type="range" v-model.number="tbDepth" min="1" max="8" />
                                 <span class="slider-value">{{ tbDepth }}</span>
                             </label>
                             <label class="slider-block" title="How many items per level; higher = wider structure. Tip: Increasing depth/breadth grows size multiplicatively.">
                                 Breadth per level
-                                <input class="hacker-slider" type="range" v-model.number="tbBreadth" min="1" max="10" />
+                                <input type="range" v-model.number="tbBreadth" min="1" max="10" />
                                 <span class="slider-value">{{ tbBreadth }}</span>
                             </label>
                             <label class="slider-block" title="How many times to repeat the whole block">
                                 Repeats (blocks)
-                                <input class="hacker-slider" type="range" v-model.number="tbRepeats" min="1" max="50" />
+                                <input type="range" v-model.number="tbRepeats" min="1" max="50" />
                                 <span class="slider-value">{{ tbRepeats }}</span>
                             </label>
                             <label class="switch neon" title="Adds VS16/VS15 after glyphs to increase token churn">
@@ -97,8 +97,8 @@
                                 <input type="text" v-model="tbCarrierManual" placeholder="e.g., ⚙️ or ::tag::" />
                             </label>
                         </div>
-                        <div class="token-bomb-actions">
-                            <button class="transform-button" @click="generateTokenBomb" title="Build the tokenade with current settings">
+                        <div class="token-bomb-actions mutation-actions">
+                            <button type="button" class="transform-button tool-primary-btn" @click="generateTokenBomb" title="Build the tokenade with current settings">
                                 <i class="fas fa-hammer"></i> Generate Tokenade
                             </button>
                             <button class="copy-button" v-if="tokenBombOutput" @click="copyToClipboard(tokenBombOutput)">
@@ -136,8 +136,8 @@
                                 <span>Add zero-width spacing</span>
                             </label>
                         </div>
-                        <div class="token-bomb-actions">
-                            <button class="transform-button" @click="generateTextPayload">
+                        <div class="token-bomb-actions mutation-actions">
+                            <button type="button" class="transform-button tool-primary-btn" @click="generateTextPayload">
                                 <i class="fas fa-hammer"></i> Generate Text Payload
                             </button>
                             <button class="copy-button" v-if="textPayload" @click="copyToClipboard(textPayload)">

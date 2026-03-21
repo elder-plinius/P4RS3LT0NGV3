@@ -1,0 +1,60 @@
+<div v-if="activeTab === 'anticlassifier'" class="tab-content">
+    <div class="transform-layout">
+        <div class="transform-section anticlassifier-section">
+            <div class="section-header">
+                <h3><i class="fas fa-robot"></i> Anti-Classifier <small>Syntactic transformations via OpenRouter</small></h3>
+                <p class="ac-lede">Uses the same OpenRouter API key as PromptCraft. For research into how phrasing interacts with classifiers and filters.</p>
+            </div>
+
+            <div class="input-section">
+                <label>
+                    Prompt to analyze
+                    <textarea v-model="acInput" placeholder="Enter the prompt you want to analyze and transform..." rows="5"></textarea>
+                </label>
+            </div>
+
+            <div class="options-grid ac-options">
+                <label>
+                    Model
+                    <select v-model="acModel">
+                        <option v-for="m in acModels" :key="m.id" :value="m.id">{{ m.name }} ({{ m.provider }})</option>
+                    </select>
+                </label>
+                <label
+                    class="slider-block"
+                    title="Sampling randomness: lower is more deterministic, higher is more varied (OpenRouter 0–2)."
+                >
+                    Temperature
+                    <input type="range" v-model.number="acTemperature" min="0" max="2" step="0.05" />
+                    <span class="slider-value">{{ Number(acTemperature).toFixed(2) }}</span>
+                </label>
+                <label class="slider-block">
+                    Max tokens
+                    <input type="range" v-model.number="acMaxTokens" min="500" max="8000" step="100" />
+                    <span class="slider-value">{{ acMaxTokens }}</span>
+                </label>
+            </div>
+
+            <div class="token-bomb-actions mutation-actions">
+                <button type="button" class="transform-button ac-generate-btn tool-primary-btn" @click="acRun" :disabled="acLoading">
+                    <i :class="acLoading ? 'fas fa-spinner fa-spin' : 'fas fa-bolt'"></i>
+                    {{ acLoading ? 'Generating...' : 'Generate transformations' }}
+                </button>
+                <button class="action-button copy" v-if="acOutput" type="button" @click="acCopyOutput">
+                    <i class="fas fa-copy"></i> Copy response
+                </button>
+            </div>
+
+            <div v-if="acError" class="pc-error ac-error">
+                <i class="fas fa-exclamation-triangle"></i> {{ acError }}
+            </div>
+
+            <div v-if="acOutput" class="output-container ac-output-wrap">
+                <div class="section-header">
+                    <h4>Response</h4>
+                </div>
+                <pre class="ac-response">{{ acOutput }}</pre>
+            </div>
+        </div>
+    </div>
+</div>

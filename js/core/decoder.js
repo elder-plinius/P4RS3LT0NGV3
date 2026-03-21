@@ -18,7 +18,10 @@ function universalDecode(input, context = {}) {
         if (transform.detector && transform.reverse) {
             try {
                 if (transform.detector(input)) {
-                    const result = transform.reverse(input);
+                    const opts = window.getMergedTransformOptions
+                        ? window.getMergedTransformOptions(transform)
+                        : {};
+                    const result = transform.reverse(input, opts);
                     if (result && result !== input && result.length > 0) {
                         const hasContent = result.replace(/[\x00-\x1F\x7F-\x9F\s]/g, '').length > 0;
                         if (hasContent) {
@@ -57,7 +60,9 @@ function universalDecode(input, context = {}) {
             );
             
             if (transformKey && window.transforms[transformKey].reverse) {
-                const result = window.transforms[transformKey].reverse(input);
+                const t = window.transforms[transformKey];
+                const opts = window.getMergedTransformOptions ? window.getMergedTransformOptions(t) : {};
+                const result = t.reverse(input, opts);
                 if (result && result !== input) {
                     addDecoding(result, activeTransform.name, 150);
                 }
@@ -71,7 +76,8 @@ function universalDecode(input, context = {}) {
         const transform = window.transforms[name];
         if (transform.reverse && !transform.detector) {
             try {
-                const result = transform.reverse(input);
+                const opts = window.getMergedTransformOptions ? window.getMergedTransformOptions(transform) : {};
+                const result = transform.reverse(input, opts);
                 if (result !== input && /[a-zA-Z0-9\s]{3,}/.test(result)) {
                     addDecoding(result, transform.name, 10);
                 }

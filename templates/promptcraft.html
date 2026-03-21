@@ -53,11 +53,25 @@
                         Variants
                         <input type="number" v-model.number="pcCount" min="1" max="10" />
                     </label>
+                    <label
+                        class="slider-block"
+                        title="Sampling randomness: lower is more deterministic, higher is more varied (OpenRouter 0–2)."
+                    >
+                        Temperature
+                        <input
+                            type="range"
+                            v-model.number="pcTemperature"
+                            min="0"
+                            max="2"
+                            step="0.05"
+                        />
+                        <span class="slider-value">{{ Number(pcTemperature).toFixed(2) }}</span>
+                    </label>
                 </div>
             </div>
 
             <div class="token-bomb-actions mutation-actions">
-                <button class="transform-button pc-generate-btn" @click="pcRunMutation" :disabled="pcLoading">
+                <button type="button" class="transform-button pc-generate-btn tool-primary-btn" @click="pcRunMutation" :disabled="pcLoading">
                     <i :class="pcLoading ? 'fas fa-spinner fa-spin' : 'fas fa-bolt'"></i>
                     {{ pcLoading ? 'Generating...' : 'Mutate Prompt' }}
                 </button>

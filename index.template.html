@@ -61,11 +61,19 @@
                 >
                     <i class="fas fa-bug"></i>
                 </button>
+                <button 
+                    @click="toggleEndSequencePanel"
+                    class="history-button" 
+                    title="End sequences (delimiter strings)"
+                    aria-label="End sequences"
+                >
+                    <i class="fas fa-stop"></i>
+                </button>
             </div>
         </header>
 
         <div class="tabs">
-            <div class="tab-buttons">
+            <div class="tab-buttons" role="tablist" aria-label="Tools">
                 <!-- Dynamically generated tab buttons from tool registry -->
                 <button
                     v-for="tool in registeredTools"
@@ -74,9 +82,30 @@
                     :class="{ active: activeTab === tool.id }"
                     @click="switchToTab(tool.id)"
                     :title="tool.title"
+                    role="tab"
+                    :aria-selected="activeTab === tool.id"
                 >
                     <i :class="'fas ' + tool.icon"></i> {{ tool.name }}
                 </button>
+            </div>
+
+            <div class="tab-tool-select">
+                <label for="mobile-tool-select">Selected Tool</label>
+                <select
+                    id="mobile-tool-select"
+                    class="mobile-tool-dropdown"
+                    :value="activeTab"
+                    aria-label="Selected tool"
+                    @change="switchToTab($event.target.value)"
+                >
+                    <template v-for="tool in registeredTools">
+                        <option
+                            v-if="!tool.hidden"
+                            :key="tool.id"
+                            :value="tool.id"
+                        >{{ tool.name }}</option>
+                    </template>
+                </select>
             </div>
 
             <div id="tool-content-container">
@@ -226,6 +255,46 @@
                 </div>
             </div>
 
+            <!-- End sequences sidebar (delimiter / stop strings for research) -->
+            <div class="end-sequence-panel" :class="{ active: showEndSequencePanel }">
+                <div class="end-sequence-header">
+                    <h3><i class="fas fa-stop"></i> End sequences</h3>
+                    <div class="header-actions">
+                        <button class="close-button" type="button" @click="toggleEndSequencePanel" title="Close">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="end-sequence-content">
+                    <p class="end-sequence-lede">
+                        Strings sometimes used to probe delimiter and termination behavior. Copy into your payloads as needed for authorized testing.
+                    </p>
+                    <div
+                        v-for="cat in endSequenceCategories"
+                        :key="cat.title"
+                        class="endsequence-category"
+                    >
+                        <h4>{{ cat.title }}</h4>
+                        <div class="endsequence-items">
+                            <button
+                                v-for="(item, idx) in cat.items"
+                                :key="cat.title + '-' + idx"
+                                type="button"
+                                class="endsequence-item"
+                                @click="copyEndSequence(item.value)"
+                                :title="'Copy to clipboard'"
+                                :aria-label="'Copy ' + item.label"
+                            >
+                                <code class="endsequence-label">{{ item.label }}</code>
+                                <span class="endsequence-copy-affordance" aria-hidden="true">
+                                    <i class="fas fa-copy"></i>
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         <!-- Advanced Settings Panel (inside app so Vue bindings work) -->
         <div id="unicode-options-panel" class="unicode-options-panel">
             <div class="unicode-panel-header">
@@ -236,7 +305,7 @@
                 <!-- OpenRouter API Key -->
                 <div class="settings-section api-key-section">
                     <h4><i class="fas fa-key"></i> OpenRouter API Key</h4>
-                    <small class="settings-hint">Required for Translation and PromptCraft features. Stored locally in your browser only.</small>
+                    <small class="settings-hint">Required for Translation, PromptCraft, and Anti-Classifier. Stored locally in your browser only.</small>
                     <div class="api-key-input-row">
                         <input
                             :type="showApiKey ? 'text' : 'password'"
@@ -338,6 +407,9 @@
     
     <!-- Glitch Tokens Data -->
     <script src="js/data/glitchTokens.js"></script>
+    <script src="js/data/endSequences.js"></script>
+    <script src="js/data/openrouterModels.js"></script>
+    <script src="js/data/anticlassifierPrompt.js"></script>
     
     <!-- Load Configuration and Utilities (before modules that depend on them) -->
     <script src="js/config/constants.js"></script>
@@ -352,10 +424,13 @@
     
     <!-- Core modules (feature libraries) -->
     <script src="js/core/steganography.js"></script>
+    <script src="js/core/transformOptions.js"></script>
     <script src="js/core/decoder.js"></script>
     
     <!-- Load Tool System -->
     <script src="js/tools/Tool.js"></script>
+    <script src="js/tools/AntiClassifierTool.js"></script>
+    <script src="js/tools/BijectionTool.js"></script>
     <script src="js/tools/DecodeTool.js"></script>
     <script src="js/tools/EmojiTool.js"></script>
     <script src="js/tools/GibberishTool.js"></script>

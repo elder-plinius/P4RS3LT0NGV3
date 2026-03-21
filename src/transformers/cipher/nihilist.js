@@ -5,7 +5,21 @@ export default new BaseTransformer({
     name: 'Nihilist Cipher',
     priority: 60,
     category: 'cipher',
-    key: '12345', // Default numeric key
+    key: '12345',
+    configurableOptions: [
+        {
+            id: 'key',
+            label: 'Numeric key',
+            type: 'text',
+            default: '12345'
+        }
+    ],
+    _key: function(options) {
+        const k = options && options.key !== undefined && options.key !== null
+            ? String(options.key)
+            : null;
+        return (k || this.key || '12345').replace(/[^0-9]/g, '');
+    },
     // Standard Polybius square (5x5, I and J share same cell)
     square: [
         ['A', 'B', 'C', 'D', 'E'],
@@ -14,8 +28,9 @@ export default new BaseTransformer({
         ['Q', 'R', 'S', 'T', 'U'],
         ['V', 'W', 'X', 'Y', 'Z']
     ],
-    func: function(text) {
-        const key = (this.key || '12345').replace(/[^0-9]/g, '');
+    func: function(text, options) {
+        options = options || {};
+        const key = this._key(options);
         if (key.length === 0) return text;
         
         const cleaned = text.toUpperCase().replace(/[^A-Z]/g, '');
@@ -47,8 +62,9 @@ export default new BaseTransformer({
         
         return result.trim();
     },
-    reverse: function(text) {
-        const key = (this.key || '12345').replace(/[^0-9]/g, '');
+    reverse: function(text, options) {
+        options = options || {};
+        const key = this._key(options);
         if (key.length === 0) return text;
         
         // Extract two-digit numbers
@@ -79,9 +95,9 @@ export default new BaseTransformer({
         
         return result;
     },
-    preview: function(text) {
+    preview: function(text, options) {
         if (!text) return '[nihilist]';
-        const result = this.func(text.slice(0, 5));
+        const result = this.func(text.slice(0, 5), options);
         return result.substring(0, 15) + '...';
     },
     detector: function(text) {

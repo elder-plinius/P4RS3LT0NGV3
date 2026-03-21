@@ -5,9 +5,19 @@ export default new BaseTransformer({
     name: 'Beaufort Cipher',
     priority: 60,
     category: 'cipher',
-    key: 'KEY', // Default key
-    func: function(text) {
-        const key = (this.key || 'KEY').toUpperCase();
+    key: 'KEY',
+    configurableOptions: [
+        {
+            id: 'key',
+            label: 'Keyword',
+            type: 'text',
+            default: 'KEY'
+        }
+    ],
+    func: function(text, options) {
+        options = options || {};
+        const k = options.key !== undefined && options.key !== null ? String(options.key) : null;
+        const key = (k || this.key || 'KEY').toUpperCase();
         const keyLength = key.length;
         let keyIndex = 0;
         
@@ -32,13 +42,12 @@ export default new BaseTransformer({
             }
         }).join('');
     },
-    reverse: function(text) {
-        // Beaufort cipher is self-reciprocal (same function for encode/decode)
-        return this.func(text);
+    reverse: function(text, options) {
+        return this.func(text, options);
     },
-    preview: function(text) {
+    preview: function(text, options) {
         if (!text) return '[beaufort]';
-        const result = this.func(text.slice(0, 8));
+        const result = this.func(text.slice(0, 8), options);
         return result.substring(0, 10) + (result.length > 10 ? '...' : '');
     },
     detector: function(text) {

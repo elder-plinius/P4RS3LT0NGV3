@@ -22,6 +22,10 @@ const baseData = {
     showDangerModal: false,
     dangerThresholdTokens: window.CONFIG.DANGER_THRESHOLD_TOKENS,
     showGlitchTokenPanel: false,
+    showEndSequencePanel: false,
+    endSequenceCategories: (typeof window !== 'undefined' && window.END_SEQUENCE_CATEGORIES)
+        ? window.END_SEQUENCE_CATEGORIES
+        : [],
     glitchTokensLoaded: false,
     glitchTokenBehavior: '',
     glitchTokenSearch: '',
@@ -171,6 +175,16 @@ window.app = new Vue({
             if (this.showGlitchTokenPanel && !this.glitchTokensLoaded) {
                 this.loadGlitchTokens();
             }
+        },
+
+        toggleEndSequencePanel() {
+            this.showEndSequencePanel = !this.showEndSequencePanel;
+        },
+
+        copyEndSequence(value) {
+            if (!value) return;
+            this.copyToClipboard(value);
+            this.showNotification('Copied', 'success', 'fas fa-copy');
         },
         
         async loadGlitchTokens() {

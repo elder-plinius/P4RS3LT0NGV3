@@ -5,8 +5,30 @@ export default new BaseTransformer({
     name: 'Four-Square Cipher',
     priority: 60,
     category: 'cipher',
-    key1: 'EXAMPLE', // Top-left square key
-    key2: 'KEYWORD', // Bottom-right square key
+    key1: 'EXAMPLE',
+    key2: 'KEYWORD',
+    configurableOptions: [
+        {
+            id: 'key1',
+            label: 'Top-left square keyword',
+            type: 'text',
+            default: 'EXAMPLE'
+        },
+        {
+            id: 'key2',
+            label: 'Bottom-right square keyword',
+            type: 'text',
+            default: 'KEYWORD'
+        }
+    ],
+    _keys: function(options) {
+        options = options || {};
+        const k1 = options.key1 !== undefined && options.key1 !== null ? String(options.key1) : null;
+        const k2 = options.key2 !== undefined && options.key2 !== null ? String(options.key2) : null;
+        const key1 = (k1 || this.key1 || 'EXAMPLE').toUpperCase().replace(/[^A-Z]/g, '').replace(/J/g, 'I');
+        const key2 = (k2 || this.key2 || 'KEYWORD').toUpperCase().replace(/[^A-Z]/g, '').replace(/J/g, 'I');
+        return { key1, key2 };
+    },
     // Standard alphabet for top-right and bottom-left squares
     standardAlphabet: 'ABCDEFGHIKLMNOPQRSTUVWXYZ',
     // Create keyed squares
@@ -95,9 +117,8 @@ export default new BaseTransformer({
         
         return result;
     },
-    reverse: function(text) {
-        const key1 = (this.key1 || 'EXAMPLE').toUpperCase().replace(/[^A-Z]/g, '').replace(/J/g, 'I');
-        const key2 = (this.key2 || 'KEYWORD').toUpperCase().replace(/[^A-Z]/g, '').replace(/J/g, 'I');
+    reverse: function(text, options) {
+        const { key1, key2 } = this._keys(options);
         
         if (key1.length === 0 || key2.length === 0) return text;
         
@@ -145,9 +166,9 @@ export default new BaseTransformer({
         
         return result;
     },
-    preview: function(text) {
+    preview: function(text, options) {
         if (!text) return '[four-square]';
-        return this.func(text.slice(0, 4)) + (text.length > 4 ? '...' : '');
+        return this.func(text.slice(0, 4), options) + (text.length > 4 ? '...' : '');
     },
     detector: function(text) {
         // Four-Square produces scrambled text (all uppercase letters, no digits)

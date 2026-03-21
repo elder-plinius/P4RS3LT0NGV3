@@ -13,7 +13,7 @@ class TranslateTool extends Tool {
             name: 'Translate',
             icon: 'fa-language',
             title: 'AI-powered translation via TranslateGemma prompt format',
-            order: 10
+            order: 11
         });
         this.hidden = true;
 

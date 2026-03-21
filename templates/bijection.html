@@ -1,0 +1,96 @@
+<div v-if="activeTab === 'bijection'" class="tab-content">
+    <div class="transform-layout">
+        <div class="transform-section bijection-section">
+            <div class="section-header">
+                <h3><i class="fas fa-right-left"></i> Bijection <small>custom encoded languages</small></h3>
+                <p class="bj-lede">
+                    <strong>Bijection learning</strong> builds a character mapping and wraps it in a prompt so the model is asked to use a custom script (<em>alphapr</em>).
+                    <a href="https://arxiv.org/abs/2410.01294" target="_blank" rel="noopener noreferrer">Haize Labs — Endless Jailbreaks with Bijection Learning</a>
+                </p>
+            </div>
+
+            <div class="input-section">
+                <label>
+                    Target content
+                    <textarea v-model="bijectionInput" placeholder="Text to encode with the bijection mapping…" rows="4"></textarea>
+                </label>
+            </div>
+
+            <div class="options-grid bij-options">
+                <label>
+                    Bijection type
+                    <select v-model="bijectionType">
+                        <option value="char-to-num">Character → Number</option>
+                        <option value="char-to-symbol">Character → Symbol</option>
+                        <option value="char-to-hex">Character → Hex</option>
+                        <option value="char-to-emoji">Character → Emoji</option>
+                        <option value="char-to-greek">Character → Greek</option>
+                        <option value="digit-char-mix">Digit + Character Mix</option>
+                        <option value="mixed-mapping">Mixed (numbers, symbols, Greek, …)</option>
+                        <option value="rot-variant">ROT variant</option>
+                    </select>
+                </label>
+                <label>
+                    Fixed size (unchanged leading chars)
+                    <input type="number" v-model.number="bijectionFixedSize" min="0" max="10" />
+                </label>
+                <label>
+                    Attack budget (variants)
+                    <input type="number" v-model.number="bijectionBudget" min="1" max="50" />
+                </label>
+            </div>
+
+            <div class="options-grid bij-toggles">
+                <label class="switch neon"><input type="checkbox" v-model="bijectionIncludeExamples" /><span>Include example conversation</span></label>
+                <label class="switch neon"><input type="checkbox" v-model="bijectionAutoCopy" /><span>Auto-copy first prompt</span></label>
+            </div>
+
+            <div class="token-bomb-actions mutation-actions">
+                <button type="button" class="transform-button bij-generate-btn tool-primary-btn" @click="generateBijectionPrompts">
+                    <i class="fas fa-bolt"></i>
+                    Generate attack prompts
+                </button>
+                <button type="button" class="action-button" @click="refreshBijectionMapping" title="Regenerate mapping and sync prompts">
+                    <i class="fas fa-rotate"></i> Refresh mapping
+                </button>
+                <button type="button" class="action-button copy" v-if="bijectionOutputs.length" @click="copyAllBijection">
+                    <i class="fas fa-copy"></i> Copy all
+                </button>
+                <button type="button" class="action-button download" v-if="bijectionOutputs.length" @click="downloadBijection">
+                    <i class="fas fa-download"></i> Download
+                </button>
+            </div>
+
+            <div class="bj-mapping-panel" v-if="Object.keys(bijectionMapping).length">
+                <div class="bj-mapping-head">
+                    <h4><i class="fas fa-key"></i> Character mapping <span class="bj-count">{{ Object.keys(bijectionMapping).length }}</span></h4>
+                    <button type="button" class="action-button" @click="shuffleBijectionMapping"><i class="fas fa-shuffle"></i> Shuffle values</button>
+                </div>
+                <div class="bj-mapping-grid">
+                    <div v-for="(value, key) in bijectionMapping" :key="key" class="bj-map-chip">
+                        <span class="bj-map-key">{{ key }}</span>
+                        <span class="bj-map-arrow">→</span>
+                        <span class="bj-map-val">{{ value }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="output-container" v-if="bijectionOutputs.length">
+                <h4 class="bj-output-title"><i class="fas fa-file-lines"></i> Generated prompts <span class="bj-count">{{ bijectionOutputs.length }}</span></h4>
+                <div class="bj-results">
+                    <div v-for="(output, i) in bijectionOutputs" :key="'bj-'+i" class="bj-result-card">
+                        <div class="bj-result-header">
+                            <span class="bj-result-num">#{{ i + 1 }}</span>
+                            <span class="bj-result-meta">{{ output.type }} · {{ output.mappingCount }} mappings</span>
+                            <button type="button" class="bj-copy-btn" @click="copyToClipboard(output.prompt)" title="Copy this prompt">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <textarea :value="output.prompt" readonly class="bj-prompt-text" rows="8"></textarea>
+                        <p class="bj-encoded"><strong>Encoded:</strong> {{ output.encoded }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

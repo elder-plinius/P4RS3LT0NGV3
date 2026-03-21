@@ -5,9 +5,24 @@ export default new BaseTransformer({
     name: 'Autokey Cipher',
     priority: 60,
     category: 'cipher',
-    key: 'KEY', // Initial key
-    func: function(text) {
-        const key = (this.key || 'KEY').toUpperCase().replace(/[^A-Z]/g, '');
+    key: 'KEY',
+    configurableOptions: [
+        {
+            id: 'key',
+            label: 'Priming key',
+            type: 'text',
+            default: 'KEY'
+        }
+    ],
+    _key: function(options) {
+        const k = options && options.key !== undefined && options.key !== null
+            ? String(options.key)
+            : null;
+        return (k || this.key || 'KEY').toUpperCase().replace(/[^A-Z]/g, '');
+    },
+    func: function(text, options) {
+        options = options || {};
+        const key = this._key(options);
         if (key.length === 0) return text;
         
         let result = '';
@@ -33,8 +48,9 @@ export default new BaseTransformer({
         
         return result;
     },
-    reverse: function(text) {
-        const key = (this.key || 'KEY').toUpperCase().replace(/[^A-Z]/g, '');
+    reverse: function(text, options) {
+        options = options || {};
+        const key = this._key(options);
         if (key.length === 0) return text;
         
         let result = '';
@@ -71,9 +87,9 @@ export default new BaseTransformer({
         
         return result;
     },
-    preview: function(text) {
+    preview: function(text, options) {
         if (!text) return '[autokey]';
-        return this.func(text.slice(0, 8)) + (text.length > 8 ? '...' : '');
+        return this.func(text.slice(0, 8), options) + (text.length > 8 ? '...' : '');
     },
     detector: function(text) {
         // Autokey produces ciphertext that looks like scrambled letters

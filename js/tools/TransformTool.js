@@ -28,7 +28,10 @@ class TransformTool extends Tool {
                     func: transform.func.bind(transform),
                     preview: transform.preview ? transform.preview.bind(transform) : function() { return '[preview]'; },
                     reverse: transform.reverse ? transform.reverse.bind(transform) : null,
-                    category: transform.category || 'special'
+                    category: transform.category || 'special',
+                    configurableOptions: transform.configurableOptions || [],
+                    hasConfigurableOptions: Array.isArray(transform.configurableOptions) && transform.configurableOptions.length > 0,
+                    inputKind: transform.inputKind === 'text' ? 'text' : 'textarea'
                 }))
             : [];
         
@@ -66,8 +69,27 @@ class TransformTool extends Tool {
             lastUsedTransforms: lastUsed,
             showLastUsed: lastUsed.length > 0,
             favorites: favorites,
-            showFavorites: favorites.length > 0
+            showFavorites: favorites.length > 0,
+            transformOptionPrefs: this.loadTransformOptionPrefs(),
+            transformOptionsModalOpen: false,
+            transformOptionsModalTransform: null,
+            transformOptionsDraft: {}
         };
+    }
+    
+    loadTransformOptionPrefs() {
+        try {
+            const raw = localStorage.getItem('transformOptionPrefs');
+            if (raw) {
+                const d = JSON.parse(raw);
+                if (d && typeof d === 'object' && !Array.isArray(d)) {
+                    return d;
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to load transform option prefs:', e);
+        }
+        return {};
     }
     
     loadCategoryOrder() {
@@ -196,6 +218,120 @@ class TransformTool extends Tool {
                 const transform = this.transforms.find(t => t.name === transformName);
                 return transform ? transform.category : 'special';
             },
+            /**
+             * True if this transform should show the options gear (uses saved prefs + defaults in decoder).
+             * Falls back to window.transforms when the Vue copy omits configurableOptions.
+             */
+            transformHasOptionsUI: function(transform) {
+                if (!transform || !transform.name) {
+                    return false;
+                }
+                const list = transform.configurableOptions;
+                if (Array.isArray(list) && list.length > 0) {
+                    return true;
+                }
+                if (window.transforms) {
+                    const full = Object.values(window.transforms).find(function(t) {
+                        return t && t.name === transform.name;
+                    });
+                    return !!(full && full.configurableOptions && full.configurableOptions.length);
+                }
+                return false;
+            },
+            getMergedOptionsForTransform: function(transformName) {
+                let t = this.transforms.find(tr => tr.name === transformName);
+                if ((!t || !t.configurableOptions || !t.configurableOptions.length) && window.transforms) {
+                    const full = Object.values(window.transforms).find(function(tr) {
+                        return tr && tr.name === transformName;
+                    });
+                    if (full) {
+                        t = full;
+                    }
+                }
+                if (!t || !t.configurableOptions || !t.configurableOptions.length) {
+                    return {};
+                }
+                if (typeof window.getMergedTransformOptions === 'function') {
+                    return window.getMergedTransformOptions(t);
+                }
+                return {};
+            },
+            transformInputControlKind: function() {
+                if (!this.activeTransform || this.activeTransform.inputKind !== 'text') {
+                    return 'textarea';
+                }
+                return 'text';
+            },
+            openTransformOptions: function(transform, event) {
+                if (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                if (!transform || !this.transformHasOptionsUI(transform)) {
+                    return;
+                }
+                let modalTransform = transform;
+                if (!modalTransform.configurableOptions || !modalTransform.configurableOptions.length) {
+                    const full = window.transforms && Object.values(window.transforms).find(function(tr) {
+                        return tr && tr.name === transform.name;
+                    });
+                    if (full && full.configurableOptions && full.configurableOptions.length) {
+                        modalTransform = Object.assign({}, transform, {
+                            configurableOptions: full.configurableOptions
+                        });
+                    }
+                }
+                this.transformOptionsModalTransform = modalTransform;
+                this.transformOptionsDraft = Object.assign({}, this.getMergedOptionsForTransform(transform.name));
+                this.transformOptionsModalOpen = true;
+            },
+            closeTransformOptions: function() {
+                this.transformOptionsModalOpen = false;
+                this.transformOptionsModalTransform = null;
+                this.transformOptionsDraft = {};
+            },
+            setTransformOptionDraft: function(id, value) {
+                this.$set(this.transformOptionsDraft, id, value);
+            },
+            resetTransformOptionsToDefaults: function() {
+                const t = this.transformOptionsModalTransform;
+                if (!t || !t.configurableOptions) {
+                    return;
+                }
+                t.configurableOptions.forEach(opt => {
+                    let v = opt.default;
+                    if (v === undefined || v === null) {
+                        if (opt.type === 'boolean') {
+                            v = false;
+                        } else if (opt.type === 'select' && opt.options && opt.options.length) {
+                            v = opt.options[0].value;
+                        } else if (opt.type === 'number') {
+                            v = 0;
+                        } else {
+                            v = '';
+                        }
+                    }
+                    this.$set(this.transformOptionsDraft, opt.id, v);
+                });
+            },
+            commitTransformOptions: function() {
+                if (!this.transformOptionsModalTransform) {
+                    return;
+                }
+                const name = this.transformOptionsModalTransform.name;
+                this.$set(this.transformOptionPrefs, name, Object.assign({}, this.transformOptionsDraft));
+                try {
+                    localStorage.setItem('transformOptionPrefs', JSON.stringify(this.transformOptionPrefs));
+                } catch (e) {
+                    console.warn('Failed to save transform option prefs:', e);
+                }
+                this.showNotification('Options saved', 'success', 'fas fa-gear');
+                this.closeTransformOptions();
+                if (this.activeTransform && this.activeTransform.name === name && this.transformInput) {
+                    const opts = this.getMergedOptionsForTransform(name);
+                    this.transformOutput = this.activeTransform.func(this.transformInput, opts);
+                }
+            },
             getTransformsByCategory: function(category) {
                 const list = this.transforms.filter(transform => transform.category === category);
                 if (!this.favorites || this.favorites.length === 0) return list;
@@ -228,7 +364,8 @@ class TransformTool extends Tool {
                             this.showNotification(`Mixed with: ${transformsList}`, 'success', 'fas fa-random');
                         }
                     } else {
-                        this.transformOutput = transform.func(this.transformInput);
+                        const opts = this.getMergedOptionsForTransform(transform.name);
+                        this.transformOutput = transform.func(this.transformInput, opts);
                     }
                     
                     this.isTransformCopy = true;
@@ -442,12 +579,13 @@ class TransformTool extends Tool {
             },
             autoTransform: function() {
                 if (this.transformInput && this.activeTransform && this.activeTab === 'transforms') {
+                    const opts = this.getMergedOptionsForTransform(this.activeTransform.name);
                     const segments = window.EmojiUtils.splitEmojis(this.transformInput);
                     const transformedSegments = segments.map(segment => {
                         if (segment.length > 1 || /[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}]/u.test(segment)) {
                             return segment;
                         }
-                        return this.activeTransform.func(segment);
+                        return this.activeTransform.func(segment, opts);
                     });
                     this.transformOutput = window.EmojiUtils.joinEmojis(transformedSegments);
                 }
@@ -498,7 +636,13 @@ class TransformTool extends Tool {
         return {
             transformInput() {
                 if (this.activeTransform && this.activeTab === 'transforms') {
-                    this.transformOutput = this.activeTransform.func(this.transformInput);
+                    const opts = this.getMergedOptionsForTransform(this.activeTransform.name);
+                    this.transformOutput = this.activeTransform.func(this.transformInput, opts);
+                }
+            },
+            transformOptionsModalOpen(val) {
+                if (typeof document !== 'undefined') {
+                    document.body.classList.toggle('transform-options-modal-open', !!val);
                 }
             }
         };

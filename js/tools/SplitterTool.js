@@ -8,7 +8,7 @@ class SplitterTool extends Tool {
             name: 'Splitter',
             icon: 'fa-grip-lines',
             title: 'Split text into multiple copyable messages',
-            order: 7
+            order: 8
         });
     }
     

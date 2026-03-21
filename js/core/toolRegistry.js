@@ -175,6 +175,12 @@ window.ToolRegistry = ToolRegistry;
 window.toolRegistry = new ToolRegistry();
 
 // Auto-register tools if they're available
+if (typeof AntiClassifierTool !== 'undefined') {
+    window.toolRegistry.register(new AntiClassifierTool());
+}
+if (typeof BijectionTool !== 'undefined') {
+    window.toolRegistry.register(new BijectionTool());
+}
 if (typeof DecodeTool !== 'undefined') {
     window.toolRegistry.register(new DecodeTool());
 }

@@ -5,7 +5,25 @@ export default new BaseTransformer({
     name: 'Bifid Cipher',
     priority: 60,
     category: 'cipher',
-    period: 5, // Period for fractionation (default 5)
+    period: 5,
+    configurableOptions: [
+        {
+            id: 'period',
+            label: 'Period',
+            type: 'number',
+            default: 5,
+            min: 2,
+            max: 20,
+            step: 1
+        }
+    ],
+    _period: function(options) {
+        options = options || {};
+        const p = options.period !== undefined && options.period !== ''
+            ? Number(options.period)
+            : this.period;
+        return Math.max(2, Math.min(30, parseInt(p, 10) || 5));
+    },
     // Standard Polybius square (5x5, I and J share same cell)
     square: [
         ['A', 'B', 'C', 'D', 'E'],
@@ -14,8 +32,8 @@ export default new BaseTransformer({
         ['Q', 'R', 'S', 'T', 'U'],
         ['V', 'W', 'X', 'Y', 'Z']
     ],
-    func: function(text) {
-        const period = parseInt(this.period) || 5;
+    func: function(text, options) {
+        const period = this._period(options);
         const cleaned = text.toUpperCase().replace(/[^A-Z]/g, '');
         if (cleaned.length === 0) return text;
         
@@ -56,8 +74,8 @@ export default new BaseTransformer({
         
         return result;
     },
-    reverse: function(text) {
-        const period = parseInt(this.period) || 5;
+    reverse: function(text, options) {
+        const period = this._period(options);
         const cleaned = text.toUpperCase().replace(/[^A-Z]/g, '');
         if (cleaned.length === 0) return text;
         
@@ -101,9 +119,9 @@ export default new BaseTransformer({
         
         return result;
     },
-    preview: function(text) {
+    preview: function(text, options) {
         if (!text) return '[bifid]';
-        const result = this.func(text.slice(0, 5));
+        const result = this.func(text.slice(0, 5), options);
         return result.substring(0, 10) + (result.length > 10 ? '...' : '');
     },
     detector: function(text) {
