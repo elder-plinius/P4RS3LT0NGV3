@@ -14,12 +14,14 @@ const templateFiles = [
     'decoder.html',
     'steganography.html',
     'transforms.html',
+    'promptcraft.html',
     'tokenade.html',
     'fuzzer.html',
     'tokenizer.html',
     'splitter.html',
     'gibberish.html'
 ];
+
 
 const templatesDir = path.join(__dirname, '../templates');
 let allToolHTML = '';
