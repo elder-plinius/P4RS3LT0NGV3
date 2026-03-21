@@ -103,7 +103,7 @@ class TranslateTool extends Tool {
             translateTo: async function(langName) {
                 var apiKey = this.translateGetApiKey();
                 if (!apiKey) {
-                    this.translateError = 'No API key. Set your OpenRouter key in PlinyOS settings.';
+                    this.translateError = 'No API key. Set your OpenRouter key in Advanced Settings in the top right.';
                     return;
                 }
                 var input = this.transformInput;
