@@ -239,20 +239,8 @@ class TransformTool extends Tool {
                 return false;
             },
             getMergedOptionsForTransform: function(transformName) {
-                let t = this.transforms.find(tr => tr.name === transformName);
-                if ((!t || !t.configurableOptions || !t.configurableOptions.length) && window.transforms) {
-                    const full = Object.values(window.transforms).find(function(tr) {
-                        return tr && tr.name === transformName;
-                    });
-                    if (full) {
-                        t = full;
-                    }
-                }
-                if (!t || !t.configurableOptions || !t.configurableOptions.length) {
-                    return {};
-                }
-                if (typeof window.getMergedTransformOptions === 'function') {
-                    return window.getMergedTransformOptions(t);
+                if (typeof window.getMergedTransformOptionsForName === 'function') {
+                    return window.getMergedTransformOptionsForName(transformName, this.transforms);
                 }
                 return {};
             },

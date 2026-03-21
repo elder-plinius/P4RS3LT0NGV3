@@ -134,6 +134,7 @@ Higher priority = more specific pattern (used for decoder result ordering):
 3. Test in webapp
 4. Add `detector` function if format has distinctive patterns
 5. Optionally add test cases to `tests/test_universal.js`
+6. Add a one-line description for the transform’s `name` in `DESCRIPTIONS` inside `build/readme-transform-section.js`, then run `node build/readme-transform-section.js` and merge the printed block into the **Text Transformations** section of the root `README.md` (the script exits with an error if a transform is missing from `DESCRIPTIONS`)
 
 ## Testing
 

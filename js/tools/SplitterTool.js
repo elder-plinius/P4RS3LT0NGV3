@@ -381,19 +381,44 @@ class SplitterTool extends Tool {
                     const activeTransforms = this.splitterTransforms.filter(t => t && t !== '');
                     
                     if (activeTransforms.length > 0) {
-                        // Apply each transformation in sequence
+                        const getOpts = typeof window.getMergedTransformOptionsForName === 'function'
+                            ? function(name) {
+                                return window.getMergedTransformOptionsForName(name, this.transforms);
+                            }.bind(this)
+                            : function() {
+                                return {};
+                            };
+
+                        // Apply each transformation in sequence (same options as Transform tab)
                         for (const transformName of activeTransforms) {
                             const selectedTransform = this.transforms.find(t => t.name === transformName);
-                            if (selectedTransform && selectedTransform.func) {
+                            if (!selectedTransform || !selectedTransform.func) {
+                                continue;
+                            }
+
+                            if (transformName === 'Random Mix') {
                                 processedChunks = processedChunks.map(chunk => {
                                     try {
-                                        return selectedTransform.func(chunk);
+                                        return window.transforms && window.transforms.randomizer
+                                            ? window.transforms.randomizer.func(chunk)
+                                            : chunk;
                                     } catch (e) {
                                         console.error('Transform error:', e);
                                         return chunk;
                                     }
                                 });
+                                continue;
                             }
+
+                            const opts = getOpts(transformName);
+                            processedChunks = processedChunks.map(chunk => {
+                                try {
+                                    return selectedTransform.func(chunk, opts);
+                                } catch (e) {
+                                    console.error('Transform error:', e);
+                                    return chunk;
+                                }
+                            });
                         }
                     }
                 }

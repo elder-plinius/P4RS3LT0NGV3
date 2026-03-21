@@ -5,11 +5,28 @@ export default new BaseTransformer({
     name: 'Word Wrap',
     priority: 100,
     category: 'format',
-    width: 80, // Default wrap width
-    func: function(text) {
-        const width = parseInt(this.width) || 80;
-        if (width < 1) return text;
-        
+    width: 80, // Default wrap width (fallback when options omitted)
+    configurableOptions: [
+        {
+            id: 'width',
+            label: 'Maximum line width (characters)',
+            type: 'number',
+            default: 80,
+            min: 8,
+            max: 200,
+            step: 1
+        }
+    ],
+    func: function(text, options) {
+        options = options || {};
+        let w = options.width !== undefined && options.width !== ''
+            ? parseInt(options.width, 10)
+            : parseInt(this.width, 10) || 80;
+        if (Number.isNaN(w) || w < 1) {
+            w = 80;
+        }
+        const width = w;
+
         const lines = text.split('\n');
         let result = '';
         
@@ -45,9 +62,9 @@ export default new BaseTransformer({
         // Remove line breaks (simple approach - may not be perfect)
         return text.replace(/\n/g, ' ');
     },
-    preview: function(text) {
+    preview: function(text, options) {
         if (!text) return '[word-wrap]';
-        return this.func(text.slice(0, 50));
+        return this.func(text.slice(0, 50), options);
     },
     detector: function(text) {
         // Check if text has consistent line lengths

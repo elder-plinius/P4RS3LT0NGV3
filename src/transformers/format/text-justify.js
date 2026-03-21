@@ -5,11 +5,42 @@ export default new BaseTransformer({
     name: 'Text Justify',
     priority: 100,
     category: 'format',
-    width: 80, // Default width
+    width: 80, // Default width (fallback when options omitted)
     align: 'left', // left, right, center
-    func: function(text) {
-        const width = parseInt(this.width) || 80;
-        const align = this.align || 'left';
+    configurableOptions: [
+        {
+            id: 'width',
+            label: 'Line width (characters)',
+            type: 'number',
+            default: 80,
+            min: 8,
+            max: 200,
+            step: 1
+        },
+        {
+            id: 'align',
+            label: 'Alignment',
+            type: 'select',
+            default: 'left',
+            options: [
+                { value: 'left', label: 'Left (pad on the right)' },
+                { value: 'right', label: 'Right (pad on the left)' },
+                { value: 'center', label: 'Center' }
+            ]
+        }
+    ],
+    func: function(text, options) {
+        options = options || {};
+        let w = options.width !== undefined && options.width !== ''
+            ? parseInt(options.width, 10)
+            : parseInt(this.width, 10) || 80;
+        if (Number.isNaN(w) || w < 1) {
+            w = 80;
+        }
+        const width = w;
+        const align = options.align !== undefined && options.align !== ''
+            ? options.align
+            : (this.align || 'left');
         
         const lines = text.split('\n');
         let result = '';
@@ -47,9 +78,9 @@ export default new BaseTransformer({
         // Remove padding spaces
         return text.split('\n').map(line => line.trim()).join('\n');
     },
-    preview: function(text) {
+    preview: function(text, options) {
         if (!text) return '[text-justify]';
-        return this.func(text.slice(0, 20));
+        return this.func(text.slice(0, 20), options);
     },
     detector: function(text) {
         // Check for consistent line lengths with padding

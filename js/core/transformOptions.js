@@ -39,10 +39,41 @@ function getMergedTransformOptions(transform) {
     return Object.assign({}, merged, saved);
 }
 
+/**
+ * Resolve merged options for a transform by display name (same prefs as Transform tab).
+ * @param {string} transformName
+ * @param {Array<Object>} [vueTransforms] - Vue copy of transforms (may omit configurableOptions)
+ * @returns {Object}
+ */
+function getMergedTransformOptionsForName(transformName, vueTransforms) {
+    if (!transformName) {
+        return {};
+    }
+    let t = null;
+    if (Array.isArray(vueTransforms) && vueTransforms.length) {
+        t = vueTransforms.find(function(tr) {
+            return tr && tr.name === transformName;
+        });
+    }
+    if ((!t || !t.configurableOptions || !t.configurableOptions.length) && typeof window !== 'undefined' && window.transforms) {
+        const full = Object.values(window.transforms).find(function(tr) {
+            return tr && tr.name === transformName;
+        });
+        if (full) {
+            t = full;
+        }
+    }
+    if (!t || !t.configurableOptions || !t.configurableOptions.length) {
+        return {};
+    }
+    return getMergedTransformOptions(t);
+}
+
 if (typeof window !== 'undefined') {
     window.getMergedTransformOptions = getMergedTransformOptions;
+    window.getMergedTransformOptionsForName = getMergedTransformOptionsForName;
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { getMergedTransformOptions };
+    module.exports = { getMergedTransformOptions, getMergedTransformOptionsForName };
 }
