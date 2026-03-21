@@ -206,6 +206,10 @@ class TranslateTool extends Tool {
                         this.transformOutput = translated;
                         this.activeTransform = { name: langName + ' (' + langCode + ')', category: 'translate' };
                         this.copyToClipboard(translated);
+                        var isCustomLang = this.translateCustomLangs.some(function(l) { return l.name === langName; });
+                        if (typeof this.saveLastUsedTranslate === 'function') {
+                            this.saveLastUsedTranslate(langName, isCustomLang);
+                        }
                     } else {
                         this.translateError = 'No translation returned. Try a different model.';
                     }

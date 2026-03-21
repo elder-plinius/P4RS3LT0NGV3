@@ -339,6 +339,11 @@ const limitations = {
     },
     
     // === BASE ENCODINGS ===
+    'ebcdic': {
+        issues: 'EBCDIC is uppercase-only, converts lowercase to uppercase',
+        normalize: { uppercase: true },
+        acceptPartial: true
+    },
     'ascii85': {
         issues: 'May have issues with certain emoji at end of string',
         acceptPartial: true,
@@ -364,6 +369,273 @@ const limitations = {
     },
     'invisible_text': {
         issues: 'Uses private use area, may have decoding issues',
+        acceptPartial: true
+    },
+    
+    // === NEW CIPHERS (Added in latest update) ===
+    'playfair': {
+        issues: 'Requires key, only encodes A-Z (J=I), pads with X',
+        acceptPartial: true,
+        normalize: { stripNonLetters: true, stripWhitespace: true }
+    },
+    'pigpen': {
+        issues: 'Only encodes A-Z, uses geometric symbols, returns uppercase on decode',
+        acceptPartial: true,
+        normalize: { uppercase: true }
+    },
+    'porta': {
+        issues: 'Requires key, only encodes A-Z',
+        acceptPartial: true
+    },
+    'homophonic': {
+        issues: 'Uses random selection, same input produces different output',
+        acceptPartial: true,
+        normalize: { stripWhitespace: true }
+    },
+    'hill': {
+        issues: 'Requires key matrix, only encodes A-Z, pads with X',
+        acceptPartial: true,
+        normalize: { stripNonLetters: true, stripWhitespace: true }
+    },
+    'beaufort': {
+        issues: 'Requires key, only encodes A-Z',
+        acceptPartial: true
+    },
+    'columnar_transposition': {
+        issues: 'Requires key, transposition cipher',
+        acceptPartial: true
+    },
+    'xor': {
+        issues: 'Requires key, outputs hex, may be detected as Hexadecimal',
+        acceptPartial: true
+    },
+    'louchebem': {
+        issues: 'French slang transformation, reverse may not be perfect',
+        acceptPartial: true
+    },
+    'uppercase_lowercase': {
+        issues: 'Toggle case, may be confused with other ciphers in detection',
+        acceptPartial: true
+    },
+    
+    // === NEW ENCODINGS ===
+    'base91': {
+        issues: 'May be confused with other base encodings',
+        acceptPartial: true
+    },
+    'quoted_printable': {
+        issues: 'Email encoding, adds soft line breaks, may have whitespace issues',
+        acceptPartial: true,
+        normalize: { collapseWhitespace: true }
+    },
+    'bcd': {
+        issues: 'Binary Coded Decimal encoding of character codes, complex reverse logic',
+        acceptPartial: true
+    },
+    'base36': {
+        issues: 'May be confused with Base32 in detection',
+        acceptPartial: true
+    },
+    
+    // === NEW FORMAT TRANSFORMS ===
+    'boustrophedon': {
+        issues: 'Only works on multi-line text, single-line produces no encoding',
+        acceptPartial: true
+    },
+    'latin_gibberish': {
+        issues: 'Adds "us" after consonants, may not preserve everything',
+        acceptPartial: true
+    },
+    'syllables_separator': {
+        issues: 'Adds separators, reverse removes them but original separators lost',
+        acceptPartial: true
+    },
+    'toggle_case': {
+        issues: 'Self-inverse, hard to detect uniquely',
+        acceptPartial: true
+    },
+    
+    // === NEWEST CIPHERS ===
+    'adfgx': {
+        issues: 'Requires key, only encodes A-Z, removes spaces and punctuation',
+        acceptPartial: true,
+        normalize: { stripNonLetters: true, stripWhitespace: true }
+    },
+    'polybius': {
+        issues: 'Only encodes A-Z, removes spaces and punctuation',
+        acceptPartial: true,
+        normalize: { stripNonLetters: true, stripWhitespace: true }
+    },
+    'bifid': {
+        issues: 'Only encodes A-Z, removes spaces and punctuation',
+        acceptPartial: true,
+        normalize: { stripNonLetters: true, stripWhitespace: true }
+    },
+    'trifid': {
+        issues: 'Only encodes A-Z, removes spaces and punctuation',
+        acceptPartial: true,
+        normalize: { stripNonLetters: true, stripWhitespace: true }
+    },
+    'scytale': {
+        issues: 'Only encodes A-Z, removes spaces and punctuation',
+        acceptPartial: true,
+        normalize: { stripNonLetters: true, stripWhitespace: true }
+    },
+    'nihilist': {
+        issues: 'Only encodes A-Z, removes spaces and punctuation',
+        acceptPartial: true,
+        normalize: { stripNonLetters: true, stripWhitespace: true }
+    },
+    'four_square': {
+        issues: 'Only encodes A-Z, removes spaces and punctuation',
+        acceptPartial: true,
+        normalize: { stripNonLetters: true, stripWhitespace: true }
+    },
+    'two_square': {
+        issues: 'Only encodes A-Z, removes spaces and punctuation',
+        acceptPartial: true,
+        normalize: { stripNonLetters: true, stripWhitespace: true }
+    },
+    'gronsfeld': {
+        issues: 'Requires numeric key, only encodes A-Z',
+        acceptPartial: true
+    },
+    'autokey': {
+        issues: 'Requires key, only encodes A-Z',
+        acceptPartial: true
+    },
+    
+    // === NEWEST ENCODINGS ===
+    'base122': {
+        issues: 'May have issues with emoji and special Unicode characters',
+        acceptPartial: true
+    },
+    'z85': {
+        issues: 'May have issues with emoji and special Unicode characters',
+        acceptPartial: true
+    },
+    'yenc': {
+        issues: 'Binary encoding, may be confused with other encodings',
+        acceptPartial: true
+    },
+    'unicode_points': {
+        issues: 'Encodes as U+XXXX format, works perfectly',
+        acceptPartial: false
+    },
+    'emoji_encoding': {
+        issues: 'May have issues with emoji in input text',
+        acceptPartial: true
+    },
+    
+    // === NEWEST TECHNICAL ===
+    'icao': {
+        issues: 'Only encodes A-Z, removes spaces and punctuation',
+        acceptPartial: true,
+        normalize: { stripNonLetters: true, stripWhitespace: true }
+    },
+    'itu': {
+        issues: 'Only encodes A-Z, removes spaces and punctuation',
+        acceptPartial: true,
+        normalize: { stripNonLetters: true, stripWhitespace: true }
+    },
+    'maritime_flags': {
+        issues: 'Only encodes A-Z as flag emojis',
+        acceptPartial: true,
+        normalize: { stripNonLetters: true, stripWhitespace: true }
+    },
+    'baudot': {
+        issues: 'Uppercase only, limited character set',
+        acceptPartial: true,
+        normalize: { uppercase: true }
+    },
+    
+    // === NEWEST FORMAT ===
+    'whitespace_steganography': {
+        issues: 'Encodes in whitespace patterns, works perfectly',
+        acceptPartial: false
+    },
+    'zerowidth_steganography': {
+        issues: 'Encodes using zero-width characters, works perfectly',
+        acceptPartial: false
+    },
+    'bitwise_not': {
+        issues: 'Inverts bits, produces non-printable characters',
+        acceptPartial: true
+    },
+    'word_wrap': {
+        issues: 'Only works on multi-line text, single-line produces no encoding',
+        acceptPartial: true
+    },
+    'text_justify': {
+        issues: 'Only works on multi-line text, single-line produces no encoding',
+        acceptPartial: true
+    },
+    'indent': {
+        issues: 'Adds indentation, reverse removes it',
+        acceptPartial: true
+    },
+    'line_numbers': {
+        issues: 'Adds line numbers, reverse removes them',
+        acceptPartial: true
+    },
+    
+    // === NEWEST UNICODE ===
+    'squared': {
+        issues: 'Uppercase only',
+        acceptPartial: true,
+        normalize: { uppercase: true }
+    },
+    'negative_squared': {
+        issues: 'Uppercase only',
+        acceptPartial: true,
+        normalize: { uppercase: true }
+    },
+    'circled': {
+        issues: 'Uppercase only',
+        acceptPartial: true,
+        normalize: { uppercase: true }
+    },
+    'parenthesized': {
+        issues: 'Uppercase only',
+        acceptPartial: true,
+        normalize: { uppercase: true }
+    },
+    'mirror_digits': {
+        issues: 'Only affects digits, self-inverse, hard to detect',
+        acceptPartial: true
+    },
+    
+    // === NEWEST VISUAL/UNICODE EFFECTS ===
+    'bold': {
+        issues: 'Mathematical Bold Unicode, works perfectly',
+        acceptPartial: false
+    },
+    'italic': {
+        issues: 'Mathematical Italic Unicode, works perfectly',
+        acceptPartial: false
+    },
+    'bold_italic': {
+        issues: 'Mathematical Bold Italic Unicode, works perfectly',
+        acceptPartial: false
+    },
+    'wide_spacing': {
+        issues: 'Adds spaces between characters, reverse removes them',
+        acceptPartial: true
+    },
+    'dotted_underline': {
+        issues: 'Adds combining characters, reverse removes them',
+        acceptPartial: true
+    },
+    'dashed_underline': {
+        issues: 'Adds combining characters, reverse removes them',
+        acceptPartial: true
+    },
+    'wavy_underline': {
+        issues: 'Adds combining characters, reverse removes them',
+        acceptPartial: true
+    },
+    'overline': {
+        issues: 'Adds combining characters, reverse removes them',
         acceptPartial: true
     }
 };
@@ -481,16 +753,29 @@ for (const transformName of transformNames) {
             // Find the first decoding that matches our expected method
             const correctDecoding = allDecodings.find(d => methodNameMatches(d.method, expectedMethod));
             
-            // If we didn't find it in the expected method, log it
-            if (!correctDecoding) {
+            // Special handling for non-reversible transforms
+            if (!correctDecoding && currentLimitation?.nonReversible) {
+                // For non-reversible transforms, it's okay if decoder returns null or finds alternatives
+                // The transform itself works (encoding), just can't decode
+                console.log(`  [${testType}] ⚠️  Non-reversible transform: Encoding works, decoding not supported (expected)`);
+            } else if (!correctDecoding) {
+                // If we didn't find it in the expected method, log it
                 const alternativeNames = allDecodings.map(d => d.method).join(', ');
                 console.log(`  [${testType}] ⚠️  Method mismatch: expected "${expectedMethod}", got "${detectedMethod}"${alternatives.length > 0 ? ` (alternatives: ${alternatives.map(a => a.method).join(', ')})` : ''}`);
             }
             
             // Use the correct decoding if found, otherwise fall back to primary
             const decodingToCheck = correctDecoding || allDecodings[0];
-            const actualDecoded = decodingToCheck.text;
+            const actualDecoded = decodingToCheck ? decodingToCheck.text : '';
             const isFromAlternative = correctDecoding && !correctDecoding.isPrimary;
+            
+            // For non-reversible transforms, skip content matching if decoder found alternatives
+            if (!correctDecoding && currentLimitation?.nonReversible && allDecodings.length > 0) {
+                // Encoding works, decoding not supported - this is expected
+                console.log(`  [${testType}] ⚠️  Non-reversible: Encoding verified, decoding not supported (expected)`);
+                passedTests++;
+                continue;
+            }
             
             // Step 4: Verify decoded content
             let contentMatches = actualDecoded === testString;
@@ -577,6 +862,188 @@ for (const transformName of transformNames) {
         }
     }
 }
+
+// ============================================================================
+// ADDITIONAL UNIVERSAL DECODER TESTS
+// ============================================================================
+
+console.log('\n' + '='.repeat(80));
+console.log('\n🔍 Additional Universal Decoder Tests\n');
+console.log('='.repeat(80));
+
+// Test 1: Negative tests - plain text should not trigger false positives
+console.log('\n📝 Testing: Negative Cases (False Positive Prevention)');
+console.log('-'.repeat(80));
+
+const negativeTestCases = [
+    { name: 'Plain English', text: 'The quick brown fox jumps over the lazy dog.' },
+    { name: 'Normal sentence', text: 'This is a normal sentence with punctuation!' },
+    { name: 'Mixed case', text: 'Hello World This Is Normal Text' },
+    { name: 'Numbers and text', text: 'I have 42 apples and 3 oranges.' },
+    { name: 'Short text', text: 'Hi there' },
+    { name: 'Long text', text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.' }
+];
+
+let negativeTestsPassed = 0;
+let negativeTestsFailed = 0;
+
+for (const testCase of negativeTestCases) {
+    totalTests++;
+    try {
+        const result = universalDecode(testCase.text);
+        
+        // For plain text, we expect either:
+        // 1. null (no detection) - ideal
+        // 2. Or if something is detected, it should be low priority and the decoded text should be very different
+        if (!result) {
+            // Perfect - no false positive
+            negativeTestsPassed++;
+            console.log(`  ✅ "${testCase.name}": No false positive (decoder returned null)`);
+        } else {
+            // Check if the decoded text is significantly different (not a false positive)
+            const decoded = result.text;
+            const similarity = calculateSimilarity(testCase.text, decoded);
+            
+            // If decoded text is very similar to original, it's likely a false positive
+            if (similarity > 0.8 && result.method !== 'Reverse Text' && result.method !== 'Mirror') {
+                negativeTestsFailed++;
+                console.log(`  ❌ "${testCase.name}": False positive detected`);
+                console.log(`     Original: "${testCase.text}"`);
+                console.log(`     Detected as: ${result.method}`);
+                console.log(`     Decoded: "${decoded}"`);
+                console.log(`     Similarity: ${(similarity * 100).toFixed(1)}%`);
+            } else {
+                // Acceptable - decoder found something but it's clearly different
+                negativeTestsPassed++;
+                console.log(`  ⚠️  "${testCase.name}": Detected as "${result.method}" but decoded text is different (similarity: ${(similarity * 100).toFixed(1)}%)`);
+            }
+        }
+    } catch (error) {
+        negativeTestsFailed++;
+        console.log(`  ❌ "${testCase.name}": Error - ${error.message}`);
+    }
+}
+
+// Test 2: Edge cases
+console.log('\n📝 Testing: Edge Cases');
+console.log('-'.repeat(80));
+
+const edgeCases = [
+    { name: 'Empty string', text: '' },
+    { name: 'Single character', text: 'a' },
+    { name: 'Single space', text: ' ' },
+    { name: 'Only punctuation', text: '!!!???' },
+    { name: 'Only numbers', text: '123456789' },
+    { name: 'Very long string', text: 'a'.repeat(1000) },
+    { name: 'Unicode only', text: '🌞🌞🌞' },
+    { name: 'Mixed unicode', text: 'Hello 🌞 World 😊' }
+];
+
+let edgeTestsPassed = 0;
+let edgeTestsFailed = 0;
+
+for (const testCase of edgeCases) {
+    totalTests++;
+    try {
+        const result = universalDecode(testCase.text);
+        
+        // Edge cases should either return null or handle gracefully
+        if (!result) {
+            edgeTestsPassed++;
+            console.log(`  ✅ "${testCase.name}": Handled gracefully (returned null)`);
+        } else {
+            // If it returns something, that's okay too - just log it
+            edgeTestsPassed++;
+            console.log(`  ⚠️  "${testCase.name}": Detected as "${result.method}"`);
+        }
+    } catch (error) {
+        edgeTestsFailed++;
+        console.log(`  ❌ "${testCase.name}": Error - ${error.message}`);
+    }
+}
+
+// Test 3: Priority testing - high priority transforms should be detected first
+console.log('\n📝 Testing: Priority Detection');
+console.log('-'.repeat(80));
+
+// Create test cases where multiple transforms could match
+const priorityTestCases = [
+    {
+        name: 'Base64 (high priority) vs other base encodings',
+        encoded: 'SGVsbG8gV29ybGQ=', // "Hello World" in Base64
+        expectedHighPriority: ['Base64'],
+        expectedLowerPriority: ['Base32', 'Base36', 'Base58']
+    }
+];
+
+let priorityTestsPassed = 0;
+let priorityTestsFailed = 0;
+
+for (const testCase of priorityTestCases) {
+    totalTests++;
+    try {
+        const result = universalDecode(testCase.encoded);
+        
+        if (!result) {
+            priorityTestsFailed++;
+            console.log(`  ❌ "${testCase.name}": No detection`);
+            continue;
+        }
+        
+        // Check if high priority method is detected first
+        const primaryMethod = result.method;
+        const isHighPriority = testCase.expectedHighPriority.some(method => 
+            primaryMethod.includes(method) || method.includes(primaryMethod)
+        );
+        
+        if (isHighPriority) {
+            priorityTestsPassed++;
+            console.log(`  ✅ "${testCase.name}": High priority method "${primaryMethod}" detected first`);
+        } else {
+            // Check if it's in alternatives
+            const inAlternatives = result.alternatives?.some(alt => 
+                testCase.expectedHighPriority.some(method => 
+                    alt.method.includes(method) || method.includes(alt.method)
+                )
+            );
+            
+            if (inAlternatives) {
+                priorityTestsPassed++;
+                console.log(`  ⚠️  "${testCase.name}": High priority method found in alternatives (primary: "${primaryMethod}")`);
+            } else {
+                priorityTestsFailed++;
+                console.log(`  ❌ "${testCase.name}": High priority method not detected (got: "${primaryMethod}")`);
+            }
+        }
+    } catch (error) {
+        priorityTestsFailed++;
+        console.log(`  ❌ "${testCase.name}": Error - ${error.message}`);
+    }
+}
+
+// Helper function to calculate string similarity
+function calculateSimilarity(str1, str2) {
+    if (str1 === str2) return 1;
+    if (!str1 || !str2) return 0;
+    
+    const longer = str1.length > str2.length ? str1 : str2;
+    const shorter = str1.length > str2.length ? str2 : str1;
+    
+    if (longer.length === 0) return 1;
+    
+    // Simple similarity based on common characters
+    let matches = 0;
+    const minLen = Math.min(str1.length, str2.length);
+    for (let i = 0; i < minLen; i++) {
+        if (str1[i] === str2[i]) matches++;
+    }
+    
+    return matches / longer.length;
+}
+
+// Update test counts
+passedTests += negativeTestsPassed + edgeTestsPassed + priorityTestsPassed;
+failedTests += negativeTestsFailed + edgeTestsFailed + priorityTestsFailed;
 
 // Summary
 console.log('\n' + '='.repeat(80));

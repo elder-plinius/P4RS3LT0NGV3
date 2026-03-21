@@ -14,13 +14,22 @@ class TransformTool extends Tool {
     
     getVueData() {
         const transforms = (window.transforms && Object.keys(window.transforms).length > 0)
-            ? Object.entries(window.transforms).map(([key, transform]) => ({
-                name: transform.name,
-                func: transform.func.bind(transform),
-                preview: transform.preview.bind(transform),
-                reverse: transform.reverse ? transform.reverse.bind(transform) : null,
-                category: transform.category || 'special'
-            }))
+            ? Object.entries(window.transforms)
+                .filter(([key, transform]) => {
+                    // Filter out transforms that don't have required properties
+                    if (!transform || !transform.name || !transform.func) {
+                        console.warn(`Transform "${key}" is missing required properties (name or func)`, transform);
+                        return false;
+                    }
+                    return true;
+                })
+                .map(([key, transform]) => ({
+                    name: transform.name,
+                    func: transform.func.bind(transform),
+                    preview: transform.preview ? transform.preview.bind(transform) : function() { return '[preview]'; },
+                    reverse: transform.reverse ? transform.reverse.bind(transform) : null,
+                    category: transform.category || 'special'
+                }))
             : [];
         
         const categorySet = new Set();
@@ -48,7 +57,7 @@ class TransformTool extends Tool {
         const favorites = this.loadFavorites();
         
         return {
-            transformInput: '',
+            transformInput: 'Hello World',
             transformOutput: '',
             activeTransform: null,
             transforms: transforms,
@@ -108,12 +117,18 @@ class TransformTool extends Tool {
             const saved = localStorage.getItem('transformLastUsed');
             if (saved) {
                 const data = JSON.parse(saved);
-                // Filter to only include transforms that still exist
-                if (window.transforms) {
-                    return data.filter(item => {
-                        return Object.values(window.transforms).some(t => t.name === item.name);
-                    }).slice(0, 5); // Keep only top 5
-                }
+                if (!Array.isArray(data)) return [];
+                return data
+                    .filter(item => {
+                        if (item && item.kind === 'translate') {
+                            return typeof item.lang === 'string' && item.lang.length > 0;
+                        }
+                        if (item && item.name && window.transforms) {
+                            return Object.values(window.transforms).some(t => t.name === item.name);
+                        }
+                        return false;
+                    })
+                    .slice(0, 5);
             }
         } catch (e) {
             console.warn('Failed to load last used transforms:', e);
@@ -148,12 +163,17 @@ class TransformTool extends Tool {
             const saved = localStorage.getItem('transformFavorites');
             if (saved) {
                 const data = JSON.parse(saved);
-                // Filter to only include transforms that still exist
-                if (window.transforms) {
-                    return data.filter(transformName => {
-                        return Object.values(window.transforms).some(t => t.name === transformName);
-                    });
-                }
+                if (!Array.isArray(data)) return [];
+                if (!window.transforms) return [];
+                return data.filter(entry => {
+                    if (typeof entry === 'string') {
+                        return Object.values(window.transforms).some(t => t.name === entry);
+                    }
+                    if (entry && entry.kind === 'translate' && typeof entry.lang === 'string') {
+                        return entry.lang.length > 0;
+                    }
+                    return false;
+                });
             }
         } catch (e) {
             console.warn('Failed to load favorites:', e);
@@ -177,7 +197,11 @@ class TransformTool extends Tool {
                 return transform ? transform.category : 'special';
             },
             getTransformsByCategory: function(category) {
-                return this.transforms.filter(transform => transform.category === category);
+                const list = this.transforms.filter(transform => transform.category === category);
+                if (!this.favorites || this.favorites.length === 0) return list;
+                return list.filter(t =>
+                    !this.favorites.some(f => typeof f === 'string' && f === t.name)
+                );
             },
             isSpecialCategory: function(category) {
                 return category === 'randomizer';
@@ -232,57 +256,131 @@ class TransformTool extends Tool {
             saveLastUsedTransform: function(transformName) {
                 try {
                     let lastUsed = this.lastUsedTransforms || [];
-                    
-                    // Remove if already exists
-                    lastUsed = lastUsed.filter(item => item.name !== transformName);
-                    
-                    // Add to front with timestamp
+                    lastUsed = lastUsed.filter(item => {
+                        if (item.kind === 'translate') return true;
+                        return item.name !== transformName;
+                    });
                     lastUsed.unshift({
                         name: transformName,
                         timestamp: Date.now()
                     });
-                    
-                    // Keep only last 5
                     lastUsed = lastUsed.slice(0, 5);
-                    
                     this.lastUsedTransforms = lastUsed;
                     this.showLastUsed = lastUsed.length > 0;
-                    
                     localStorage.setItem('transformLastUsed', JSON.stringify(lastUsed));
                 } catch (e) {
                     console.warn('Failed to save last used transform:', e);
                 }
             },
-            getLastUsedTransforms: function() {
+            saveLastUsedTranslate: function(langName, isCustom) {
+                try {
+                    let lastUsed = this.lastUsedTransforms || [];
+                    const c = !!isCustom;
+                    lastUsed = lastUsed.filter(item => {
+                        if (item.kind === 'translate') {
+                            return !(item.lang === langName && !!item.custom === c);
+                        }
+                        return true;
+                    });
+                    lastUsed.unshift({
+                        kind: 'translate',
+                        lang: langName,
+                        custom: c,
+                        timestamp: Date.now()
+                    });
+                    lastUsed = lastUsed.slice(0, 5);
+                    this.lastUsedTransforms = lastUsed;
+                    this.showLastUsed = lastUsed.length > 0;
+                    localStorage.setItem('transformLastUsed', JSON.stringify(lastUsed));
+                } catch (e) {
+                    console.warn('Failed to save last used translate:', e);
+                }
+            },
+            getLastUsedDisplayItems: function() {
                 if (!this.lastUsedTransforms || this.lastUsedTransforms.length === 0) {
                     return [];
                 }
-                
-                return this.lastUsedTransforms
-                    .map(item => {
-                        return this.transforms.find(t => t.name === item.name);
-                    })
-                    .filter(t => t !== undefined);
+                const out = [];
+                for (let i = 0; i < this.lastUsedTransforms.length; i++) {
+                    const item = this.lastUsedTransforms[i];
+                    if (item.kind === 'translate') {
+                        out.push({
+                            type: 'translate',
+                            key: 'lu-tx-' + item.lang + '-' + !!item.custom + '-' + (item.timestamp || i),
+                            langName: item.lang,
+                            custom: !!item.custom
+                        });
+                    } else if (item.name) {
+                        const t = this.transforms.find(tr => tr.name === item.name);
+                        if (t) {
+                            out.push({ type: 'transform', key: 'lu-tr-' + item.name + '-' + i, transform: t });
+                        }
+                    }
+                }
+                return out;
+            },
+            getFavoriteDisplayItems: function() {
+                if (!this.favorites || this.favorites.length === 0) return [];
+                const out = [];
+                for (let i = 0; i < this.favorites.length; i++) {
+                    const f = this.favorites[i];
+                    if (typeof f === 'string') {
+                        const t = this.transforms.find(tr => tr.name === f);
+                        if (t) out.push({ type: 'transform', key: 'fav-tr-' + f, transform: t });
+                    } else if (f && f.kind === 'translate' && f.lang) {
+                        out.push({
+                            type: 'translate',
+                            key: 'fav-tx-' + f.lang + '-' + !!f.custom,
+                            langName: f.lang,
+                            custom: !!f.custom
+                        });
+                    }
+                }
+                return out;
             },
             toggleFavorite: function(transformName, event) {
+                if (typeof transformName !== 'string') return;
                 if (event) {
                     event.preventDefault();
                     event.stopPropagation();
                 }
-                
                 const index = this.favorites.indexOf(transformName);
                 if (index > -1) {
-                    // Remove from favorites
                     this.favorites.splice(index, 1);
                     this.showNotification('Removed from favorites', 'success', 'fas fa-star');
                 } else {
-                    // Add to favorites
                     this.favorites.push(transformName);
                     this.showNotification('Added to favorites', 'success', 'fas fa-star');
                 }
-                
                 this.showFavorites = this.favorites.length > 0;
                 this.saveFavorites(this.favorites);
+            },
+            toggleTranslateFavorite: function(langName, custom, event) {
+                if (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                const c = !!custom;
+                const idx = this.favorites.findIndex(f => {
+                    if (typeof f === 'string') return false;
+                    return f && f.kind === 'translate' && f.lang === langName && !!f.custom === c;
+                });
+                if (idx > -1) {
+                    this.favorites.splice(idx, 1);
+                    this.showNotification('Removed from favorites', 'success', 'fas fa-star');
+                } else {
+                    this.favorites.push({ kind: 'translate', lang: langName, custom: c });
+                    this.showNotification('Added to favorites', 'success', 'fas fa-star');
+                }
+                this.showFavorites = this.favorites.length > 0;
+                this.saveFavorites(this.favorites);
+            },
+            isTranslateFavorite: function(langName, custom) {
+                const c = !!custom;
+                return this.favorites && this.favorites.some(f =>
+                    f && typeof f === 'object' && f.kind === 'translate' &&
+                    f.lang === langName && !!f.custom === c
+                );
             },
             isFavorite: function(transformName) {
                 return this.favorites && this.favorites.includes(transformName);
@@ -291,11 +389,9 @@ class TransformTool extends Tool {
                 if (!this.favorites || this.favorites.length === 0) {
                     return [];
                 }
-                
                 return this.favorites
-                    .map(transformName => {
-                        return this.transforms.find(t => t.name === transformName);
-                    })
+                    .filter(f => typeof f === 'string')
+                    .map(transformName => this.transforms.find(t => t.name === transformName))
                     .filter(t => t !== undefined);
             },
             saveFavorites: function(favorites) {

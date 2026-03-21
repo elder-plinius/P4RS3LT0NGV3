@@ -26,6 +26,10 @@
                                 <select v-model="splitterMode">
                                     <option value="chunk">Character Chunks</option>
                                     <option value="word">Split Words</option>
+                                    <option value="sentence">Sentences</option>
+                                    <option value="line">Lines</option>
+                                    <option value="pattern">Custom Pattern (Regex)</option>
+                                    <option value="token">Token-Based</option>
                                 </select>
                             </label>
                             
@@ -57,6 +61,45 @@
                             <label v-if="splitterMode === 'word'" class="switch neon">
                                 <input type="checkbox" v-model="splitterSplitFirstWord" />
                                 <span>Split First Word</span>
+                            </label>
+                            
+                            <!-- Sentence mode options -->
+                            <label v-if="splitterMode === 'sentence'" class="switch neon">
+                                <input type="checkbox" v-model="splitterPreserveEmptyLines" />
+                                <span>Preserve Empty Lines</span>
+                            </label>
+                            
+                            <!-- Line mode options -->
+                            <label v-if="splitterMode === 'line'" class="switch neon">
+                                <input type="checkbox" v-model="splitterPreserveEmptyLines" />
+                                <span>Preserve Empty Lines</span>
+                            </label>
+                            
+                            <!-- Custom pattern options -->
+                            <label v-if="splitterMode === 'pattern'">
+                                Regex Pattern
+                                <input type="text" v-model="splitterCustomPattern" placeholder="\\s+" />
+                            </label>
+                            
+                            <label v-if="splitterMode === 'pattern'" class="switch neon">
+                                <input type="checkbox" v-model="splitterPatternIncludeDelimiter" />
+                                <span>Include Delimiter</span>
+                            </label>
+                            
+                            <!-- Token-based options -->
+                            <label v-if="splitterMode === 'token'">
+                                Tokenizer
+                                <select v-model="splitterTokenizer">
+                                    <option value="cl100k">cl100k (GPT-3.5/GPT-4)</option>
+                                    <option value="o200k">o200k (GPT-4o)</option>
+                                    <option value="p50k">p50k (Code editing models)</option>
+                                    <option value="r50k">r50k (GPT-2/GPT-3)</option>
+                                </select>
+                            </label>
+                            
+                            <label v-if="splitterMode === 'token'">
+                                Tokens Per Chunk
+                                <input type="number" v-model.number="splitterTokenCount" min="1" max="1000" placeholder="3" />
                             </label>
                         </div>
 
@@ -101,12 +144,17 @@
                         <div class="encapsulation-section">
                             <div class="section-header">
                                 <h4><i class="fas fa-bracket-curly"></i> Encapsulation</h4>
-                                <p>Wrap each message with custom start and end strings</p>
+                                <p>Wrap each message with custom start and end strings. Use iterator marker to insert split numbers.</p>
                             </div>
                             <div class="options-grid">
                                 <label>
+                                    Iterator Marker
+                                    <input type="text" v-model="splitterIteratorMarker" placeholder="{n}" />
+                                    <small>This marker will be replaced with the split number (1, 2, 3...)</small>
+                                </label>
+                                <label>
                                     Start String (optional)
-                                    <input type="text" v-model="splitterStartWrap" placeholder="e.g., $, <, [" />
+                                    <input type="text" v-model="splitterStartWrap" placeholder="e.g., Message {n}: " />
                                 </label>
                                 <label>
                                     End String (optional)

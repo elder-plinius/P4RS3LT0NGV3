@@ -17,6 +17,10 @@ export default new BaseTransformer({
         reverse: function(text) {
             // Remove combining underline characters
             return text.replace(/\u0332/g, '');
+        },
+        detector: function(text) {
+            // Check for combining underline character (U+0332)
+            return /\u0332/.test(text);
         }
 
 });

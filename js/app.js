@@ -21,6 +21,12 @@ const baseData = {
     unicodeApplyFlashTimeout: null,
     showDangerModal: false,
     dangerThresholdTokens: window.CONFIG.DANGER_THRESHOLD_TOKENS,
+    showGlitchTokenPanel: false,
+    glitchTokensLoaded: false,
+    glitchTokenBehavior: '',
+    glitchTokenSearch: '',
+    filteredGlitchTokens: [],
+    allGlitchTokens: [],
     openrouterApiKey: localStorage.getItem('openrouter-api-key') || '',
     showApiKey: false,
     apiKeySaved: false
@@ -156,6 +162,68 @@ window.app = new Vue({
                     }
                 });
             }
+        },
+        
+        toggleGlitchTokenPanel(event) {
+            this.showGlitchTokenPanel = !this.showGlitchTokenPanel;
+            
+            // Load tokens if not already loaded
+            if (this.showGlitchTokenPanel && !this.glitchTokensLoaded) {
+                this.loadGlitchTokens();
+            }
+        },
+        
+        async loadGlitchTokens() {
+            if (this.glitchTokensLoaded) return;
+            
+            try {
+                if (window.loadGlitchTokens) {
+                    await window.loadGlitchTokens();
+                }
+                
+                if (window.getAllGlitchTokens) {
+                    this.allGlitchTokens = window.getAllGlitchTokens();
+                    this.filteredGlitchTokens = this.allGlitchTokens;
+                    this.glitchTokensLoaded = true;
+                }
+            } catch (error) {
+                console.error('Error loading glitch tokens:', error);
+                this.showNotification('Failed to load glitch tokens', 'error', 'fas fa-exclamation-triangle');
+            }
+        },
+        
+        filterGlitchTokens() {
+            let filtered = this.allGlitchTokens;
+            
+            // Filter by behavior
+            if (this.glitchTokenBehavior) {
+                filtered = filtered.filter(token => token.behavior === this.glitchTokenBehavior);
+            }
+            
+            // Filter by search
+            if (this.glitchTokenSearch) {
+                const searchLower = this.glitchTokenSearch.toLowerCase();
+                filtered = filtered.filter(token => {
+                    const tokenText = (token.token || '').toLowerCase();
+                    const origin = (token.origin || '').toLowerCase();
+                    const observedOutput = (token.observed_output || '').toLowerCase();
+                    const tokenId = String(token.token_id || '');
+                    
+                    return tokenText.includes(searchLower) ||
+                           origin.includes(searchLower) ||
+                           observedOutput.includes(searchLower) ||
+                           tokenId.includes(searchLower);
+                });
+            }
+            
+            this.filteredGlitchTokens = filtered;
+        },
+        
+        copyGlitchToken(tokenText) {
+            if (!tokenText) return;
+            
+            this.copyToClipboard(tokenText);
+            this.showNotification('Glitch token copied!', 'success', 'fas fa-copy');
         },
 
         addToCopyHistory(source, content) {

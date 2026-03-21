@@ -53,6 +53,14 @@
                 >
                     <i class="fas fa-sliders-h"></i>
                 </button>
+                <button 
+                    @click="toggleGlitchTokenPanel"
+                    class="history-button" 
+                    title="Glitch Tokens"
+                    aria-label="Glitch Tokens"
+                >
+                    <i class="fas fa-bug"></i>
+                </button>
             </div>
         </header>
 
@@ -114,6 +122,104 @@
                                 <button class="remove-history-button" @click.stop="removeFromCopyHistory(item.id)" title="Remove from history">
                                     <i class="fas fa-times"></i>
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Glitch Tokens Panel -->
+            <div class="glitch-token-panel" :class="{ 'active': showGlitchTokenPanel }">
+                <div class="glitch-token-header">
+                    <h3><i class="fas fa-bug"></i> Glitch Tokens</h3>
+                    <div class="header-actions">
+                        <button class="close-button" @click="toggleGlitchTokenPanel" title="Close glitch tokens">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="glitch-token-content">
+                    <!-- Filter Section -->
+                    <div class="glitch-token-filters">
+                        <div class="filter-group">
+                            <label>Behavior:</label>
+                            <select v-model="glitchTokenBehavior" @change="filterGlitchTokens">
+                                <option value="">All Behaviors</option>
+                                <option value="UNSPEAKABLE">UNSPEAKABLE</option>
+                                <option value="POLYSEMANTIC">POLYSEMANTIC</option>
+                                <option value="GLITCHED_SPELLING">GLITCHED_SPELLING</option>
+                                <option value="CONTEXT_CORRUPTOR">CONTEXT_CORRUPTOR</option>
+                                <option value="LOOP_INDUCER">LOOP_INDUCER</option>
+                                <option value="IDENTITY_DISRUPTOR">IDENTITY_DISRUPTOR</option>
+                                <option value="FRAGMENT">FRAGMENT</option>
+                                <option value="CONTROL_CHARACTER">CONTROL_CHARACTER</option>
+                                <option value="SPECIAL_TOKEN">SPECIAL_TOKEN</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Search:</label>
+                            <input 
+                                type="text" 
+                                v-model="glitchTokenSearch" 
+                                @input="filterGlitchTokens"
+                                placeholder="Search tokens..."
+                            />
+                        </div>
+                    </div>
+                    
+                    <!-- Tokens List -->
+                    <div class="glitch-token-list">
+                        <div v-if="filteredGlitchTokens.length === 0" class="no-tokens">
+                            <p v-if="!glitchTokensLoaded">Loading glitch tokens...</p>
+                            <div v-else class="empty-state">
+                                <p><strong>No glitch tokens available.</strong></p>
+                                <p>Glitch token data is not bundled by default. To use this feature:</p>
+                                <ol style="text-align: left; margin: 10px 0; padding-left: 20px;">
+                                    <li>Obtain glitch token data (e.g., from AGGREGLITCH library)</li>
+                                    <li>Open browser console and run:<br/>
+                                        <code style="background: rgba(0,0,0,0.1); padding: 2px 4px; border-radius: 3px;">window.setGlitchTokensData(yourData)</code>
+                                    </li>
+                                    <li>Refresh the panel to see tokens</li>
+                                </ol>
+                                <p style="font-size: 0.9em; color: #666; margin-top: 10px;">
+                                    The data structure should match the AGGREGLITCH format with <code>glitch_tokens</code> containing categorized token arrays.
+                                </p>
+                            </div>
+                        </div>
+                        <div v-else class="token-cards">
+                            <div 
+                                v-for="(token, index) in filteredGlitchTokens" 
+                                :key="index"
+                                class="token-card"
+                                :class="'behavior-' + (token.behavior || '').toLowerCase()"
+                            >
+                                <div class="token-card-header">
+                                    <span class="token-text">{{ token.token || 'N/A' }}</span>
+                                    <button 
+                                        class="copy-token-button" 
+                                        @click="copyGlitchToken(token.token)"
+                                        title="Copy token"
+                                    >
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                                <div class="token-card-body">
+                                    <div class="token-badge" :class="'badge-' + (token.behavior || '').toLowerCase()">
+                                        {{ token.behavior || 'Unknown' }}
+                                    </div>
+                                    <div v-if="token.token_id" class="token-id">
+                                        ID: {{ token.token_id }}
+                                    </div>
+                                    <div v-if="token.origin" class="token-origin">
+                                        Origin: {{ token.origin }}
+                                    </div>
+                                    <div v-if="token.observed_output" class="token-output">
+                                        Observed: {{ token.observed_output }}
+                                    </div>
+                                    <div v-if="token.note" class="token-note">
+                                        {{ token.note }}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -230,9 +336,13 @@
     <!-- Generated bundles -->
     <script src="js/bundles/transforms-bundle.js"></script>
     
+    <!-- Glitch Tokens Data -->
+    <script src="js/data/glitchTokens.js"></script>
+    
     <!-- Load Configuration and Utilities (before modules that depend on them) -->
     <script src="js/config/constants.js"></script>
     <script src="js/utils/escapeParser.js"></script>
+    <script src="js/utils/glitchTokens.js"></script>
     <script src="js/utils/focus.js"></script>
     <script src="js/utils/notifications.js"></script>
     <script src="js/utils/history.js"></script>

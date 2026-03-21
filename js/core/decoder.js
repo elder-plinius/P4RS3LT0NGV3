@@ -36,17 +36,8 @@ function universalDecode(input, context = {}) {
         }
     }
     
-    if (foundHighPriorityMatch || allDecodings.some(d => d.priority >= 280)) {
-        const exclusiveMatches = allDecodings.filter(d => d.priority >= 280);
-        if (exclusiveMatches.length > 0) {
-            exclusiveMatches.sort((a, b) => b.priority - a.priority);
-            return {
-                text: exclusiveMatches[0].text,
-                method: exclusiveMatches[0].method,
-                alternatives: exclusiveMatches.slice(1).map(d => ({ text: d.text, method: d.method }))
-            };
-        }
-    }
+    // Continue processing to collect all decodings, even if high-priority matches are found
+    // This ensures alternatives are shown
     
     if (window.steganography && window.steganography.hasEmojiInText && window.steganography.hasEmojiInText(input)) {
         try {
