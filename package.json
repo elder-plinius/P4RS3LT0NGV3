@@ -9,7 +9,7 @@
     "build:templates": "node build/inject-tool-templates.js",
     "build:emoji": "node build/build-emoji-data.js",
     "build:transforms": "node build/build-transforms.js",
-    "build": "npm run build:copy && npm run build:index && npm run build:transforms && npm run build:emoji && npm run build:tools && npm run build:templates",
+    "build": "npm run build:tools && npm run build:copy && npm run build:index && npm run build:transforms && npm run build:emoji && npm run build:templates",
     "test": "node tests/test_universal.js",
     "test:universal": "node tests/test_universal.js",
     "test:steg": "node tests/test_steganography_options.js",
