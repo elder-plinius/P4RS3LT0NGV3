@@ -29,16 +29,16 @@
                             <label class="switch neon"><input type="checkbox" v-model="fuzzCasing" /><span>Casing chaos</span></label>
                             <label class="switch neon"><input type="checkbox" v-model="fuzzEncodeShuffle" /><span>Homoglyph confusables</span></label>
                         </div>
-                        <div class="token-bomb-actions mutation-actions">
+                        <div class="tool-toolbar">
                             <button type="button" class="transform-button tool-primary-btn" @click="generateFuzzCases"><i class="fas fa-hammer"></i> Generate Cases</button>
                             <button class="action-button copy" v-if="fuzzerOutputs.length" @click="copyAllFuzz"><i class="fas fa-copy"></i> Copy All</button>
                             <button class="action-button download" v-if="fuzzerOutputs.length" @click="downloadFuzz"><i class="fas fa-download"></i> Download</button>
                         </div>
                         <div class="output-container" v-if="fuzzerOutputs.length">
-                            <div class="token-tiles fuzzer-list" style="display:flex; flex-direction:column; gap:8px;">
-                                <div v-for="(out, i) in fuzzerOutputs" :key="'fz-'+i" class="token-chip" style="display:flex; align-items:center; gap:8px;">
-                                    <span style="opacity:.7; min-width:32px;">#{{ i+1 }}</span>
-                                    <textarea :value="out" readonly style="flex:1; min-height:46px;"></textarea>
+                            <div class="token-tiles fuzzer-list">
+                                <div v-for="(out, i) in fuzzerOutputs" :key="'fz-'+i" class="token-chip fuzzer-case-row">
+                                    <span class="fuzzer-case-index">#{{ i+1 }}</span>
+                                    <textarea class="fuzzer-case-textarea" :value="out" readonly></textarea>
                                     <button class="copy-button" @click="copyToClipboard(out)" title="Copy"><i class="fas fa-copy"></i></button>
                                 </div>
                             </div>

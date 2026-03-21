@@ -97,7 +97,7 @@
                                 <input type="text" v-model="tbCarrierManual" placeholder="e.g., ⚙️ or ::tag::" />
                             </label>
                         </div>
-                        <div class="token-bomb-actions mutation-actions">
+                        <div class="tool-toolbar">
                             <button type="button" class="transform-button tool-primary-btn" @click="generateTokenBomb" title="Build the tokenade with current settings">
                                 <i class="fas fa-hammer"></i> Generate Tokenade
                             </button>
@@ -118,9 +118,9 @@
                     <!-- Text Payload Generator (simple) -->
                     <div class="transform-section">
                         <h4><i class="fas fa-font"></i> Text Payload Generator</h4>
-                        <label style="display: block; width: 100%; margin-bottom: 15px;">
+                        <label class="tokenade-field-label">
                             Base text
-                            <input type="text" v-model="tpBase" placeholder="Enter base snippet (e.g., hello)" style="width: 100%;" />
+                            <input type="text" v-model="tpBase" placeholder="Enter base snippet (e.g., hello)" />
                         </label>
                         <div class="options-grid">
                             <label>
@@ -136,7 +136,7 @@
                                 <span>Add zero-width spacing</span>
                             </label>
                         </div>
-                        <div class="token-bomb-actions mutation-actions">
+                        <div class="tool-toolbar">
                             <button type="button" class="transform-button tool-primary-btn" @click="generateTextPayload">
                                 <i class="fas fa-hammer"></i> Generate Text Payload
                             </button>

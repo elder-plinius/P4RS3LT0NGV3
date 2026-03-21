@@ -114,8 +114,8 @@
         </div>
 
                     <!-- Copy History Panel -->
-            <div class="copy-history-panel" :class="{ 'active': showCopyHistory }">
-                <div class="copy-history-header">
+            <div class="app-sidebar copy-history-panel" :class="{ 'active': showCopyHistory }">
+                <div class="app-sidebar-header copy-history-header">
                     <h3><i class="fas fa-history"></i> Copy History</h3>
                     <div class="header-actions">
                         <button 
@@ -131,7 +131,7 @@
                         </button>
                     </div>
                 </div>
-                <div class="copy-history-content">
+                <div class="app-sidebar-body copy-history-content">
                     <div v-if="copyHistory.length === 0" class="no-history">
                         <p>No copy history yet. Use the app features to auto-copy content.</p>
                     </div>
@@ -158,8 +158,8 @@
             </div>
 
             <!-- Glitch Tokens Panel -->
-            <div class="glitch-token-panel" :class="{ 'active': showGlitchTokenPanel }">
-                <div class="glitch-token-header">
+            <div class="app-sidebar glitch-token-panel" :class="{ 'active': showGlitchTokenPanel }">
+                <div class="app-sidebar-header glitch-token-header">
                     <h3><i class="fas fa-bug"></i> Glitch Tokens</h3>
                     <div class="header-actions">
                         <button class="close-button" @click="toggleGlitchTokenPanel" title="Close glitch tokens">
@@ -167,7 +167,7 @@
                         </button>
                     </div>
                 </div>
-                <div class="glitch-token-content">
+                <div class="app-sidebar-body glitch-token-content">
                     <!-- Filter Section -->
                     <div class="glitch-token-filters">
                         <div class="filter-group">
@@ -256,8 +256,8 @@
             </div>
 
             <!-- End sequences sidebar (delimiter / stop strings for research) -->
-            <div class="end-sequence-panel" :class="{ active: showEndSequencePanel }">
-                <div class="end-sequence-header">
+            <div class="app-sidebar end-sequence-panel" :class="{ active: showEndSequencePanel }">
+                <div class="app-sidebar-header end-sequence-header">
                     <h3><i class="fas fa-stop"></i> End sequences</h3>
                     <div class="header-actions">
                         <button class="close-button" type="button" @click="toggleEndSequencePanel" title="Close">
@@ -265,7 +265,7 @@
                         </button>
                     </div>
                 </div>
-                <div class="end-sequence-content">
+                <div class="app-sidebar-body end-sequence-content">
                     <p class="end-sequence-lede">
                         Strings sometimes used to probe delimiter and termination behavior. Copy into your payloads as needed for authorized testing.
                     </p>
@@ -296,12 +296,12 @@
             </div>
 
         <!-- Advanced Settings Panel (inside app so Vue bindings work) -->
-        <div id="unicode-options-panel" class="unicode-options-panel">
-            <div class="unicode-panel-header">
+        <div id="unicode-options-panel" class="app-sidebar unicode-options-panel">
+            <div class="app-sidebar-header unicode-panel-header">
                 <h3><i class="fas fa-sliders-h"></i> Advanced Settings</h3>
                 <button class="close-button" title="Close Advanced Settings"><i class="fas fa-times"></i></button>
             </div>
-            <div class="unicode-panel-content">
+            <div class="app-sidebar-body unicode-panel-content">
                 <!-- OpenRouter API Key -->
                 <div class="settings-section api-key-section">
                     <h4><i class="fas fa-key"></i> OpenRouter API Key</h4>
@@ -333,7 +333,7 @@
                 <!-- Steganography Options -->
                 <h4><i class="fas fa-user-secret"></i> Steganography Options</h4>
             </div>
-            <div class="unicode-panel-content options-grid steg-adv-panel">
+            <div class="app-sidebar-body unicode-panel-content options-grid steg-adv-panel">
                 <label>
                     Initial Presentation
                     <select class="steg-initial-presentation">

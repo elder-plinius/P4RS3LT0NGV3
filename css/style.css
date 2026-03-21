@@ -22,6 +22,9 @@
     --input-border: #404040;
     --section-divider: #404040;
     --focus-shadow: 0 0 0 2px rgba(100, 181, 246, 0.4);
+    --panel-shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.1);
+    --sidebar-edge-shadow: -5px 0 15px rgba(0, 0, 0, 0.3);
+    --sidebar-width: 420px;
     
     /* Transform category colors */
     --encoding-color: #7e57c2;      /* Purple for encoding/decoding */
@@ -315,6 +318,84 @@ body {
 
 .button-group .btn {
     flex: 0 1 auto;
+}
+
+/* Spacing utilities (tool templates) */
+.u-mb-8 { margin-bottom: 8px; }
+.u-mb-16 { margin-bottom: 16px; }
+.u-mt-16 { margin-top: 16px; }
+
+/* Textarea + absolutely positioned .copy-button */
+.textarea-copy-wrap {
+    position: relative;
+}
+
+/* Tokenizer token grid */
+.token-tiles.tokenizer-tiles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.token-chip.token-chip--tokenizer {
+    background: var(--button-bg);
+    border: 1px solid var(--input-border);
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-family: 'Fira Code', monospace;
+}
+
+.token-chip__idx {
+    opacity: 0.75;
+    margin-right: 6px;
+}
+
+.token-chip__id {
+    opacity: 0.6;
+    margin-left: 6px;
+}
+
+/* Fuzzer case list */
+.fuzzer-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.fuzzer-case-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.fuzzer-case-index {
+    opacity: 0.7;
+    min-width: 32px;
+}
+
+.fuzzer-case-textarea {
+    flex: 1;
+    min-height: 46px;
+}
+
+/* Decoder: method select beside label (override full-width select defaults) */
+select.decoder-method-select {
+    margin-left: 15px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    width: auto;
+    max-width: min(100%, 320px);
+}
+
+/* Tokenade text payload block label */
+.tokenade-field-label {
+    display: block;
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+.tokenade-field-label input[type="text"] {
+    width: 100%;
 }
 
 
@@ -745,8 +826,8 @@ body.dark-theme .mobile-tool-dropdown {
 .output-container {
     position: relative;
 }
-.fuzzer-list .token-chip { position: relative; }
-.fuzzer-list .token-chip .copy-button { position: static; }
+.fuzzer-list .fuzzer-case-row { position: relative; }
+.fuzzer-list .fuzzer-case-row .copy-button { position: static; }
 
 .section-header {
     margin-bottom: 15px;
@@ -1320,8 +1401,11 @@ body.dark-theme .mobile-tool-dropdown {
 
 /* Transform layout */
 .transform-layout {
+    display: flex;
+    flex-direction: column;
     gap: 24px;
     margin-top: 16px;
+    position: relative;
 }
 
 .transform-section {
@@ -1456,7 +1540,7 @@ body.dark-theme .mobile-tool-dropdown {
     background: var(--secondary-bg);
     border-radius: 8px;
     padding: 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--panel-shadow-soft);
     transition: all 0.3s ease;
     position: relative;
     border-left: none;
@@ -1537,7 +1621,9 @@ body.dark-theme .mobile-tool-dropdown {
     border-left-color: var(--accent-color);
 }
 
-.last-used-section .transform-buttons .transform-button-group {
+.last-used-section .transform-buttons .transform-button-group,
+#category-randomizer .transform-buttons .transform-button-group,
+.favorites-section .transform-buttons .transform-button-group {
     width: 100%;
 }
 
@@ -1854,10 +1940,6 @@ button.translate-custom-label-btn:hover .translate-custom-toggle-end {
     display: flex;
 }
 
-#category-randomizer .transform-buttons .transform-button-group {
-    width: 100%;
-}
-
 #category-randomizer .transform-buttons .transform-button {
     width: 100%;
 }
@@ -1945,111 +2027,37 @@ button.translate-custom-label-btn:hover .translate-custom-toggle-end {
     border-radius: 3px;
 }
 
-/* Copy History Panel */
-.copy-history-panel {
+/* Slide-out sidebars — one width on desktop; full width on small screens (see 768px media) */
+.app-sidebar {
     position: fixed;
-    right: -100%;
     top: 0;
-    width: 380px;
+    right: 0;
+    width: var(--sidebar-width);
+    max-width: min(100%, 90vw);
     height: 100vh;
     background-color: var(--secondary-bg);
     border-left: 1px solid var(--input-border);
-    z-index: 100;
-    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.3);
-    transition: right 0.3s ease-in-out;
+    box-shadow: var(--sidebar-edge-shadow);
     display: flex;
     flex-direction: column;
     padding: 0;
     overflow: hidden;
-}
-
-.copy-history-panel.active {
-    right: 0;
-}
-
-.copy-history-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px;
-    border-bottom: 1px solid var(--input-border);
-    background-color: var(--button-bg);
-}
-
-.copy-history-header h3 {
-    font-size: 1.2rem;
-    margin: 0;
-    color: var(--accent-color);
-}
-
-.copy-history-header .header-actions {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-}
-
-.copy-history-header .clear-history-button,
-.copy-history-header .close-button {
-    background: none;
-    border: none;
-    color: var(--text-color);
-    cursor: pointer;
-    font-size: 1.2rem;
-    padding: 5px;
-    transition: color 0.2s;
-}
-
-.copy-history-header .clear-history-button:hover,
-.copy-history-header .close-button:hover {
-    color: var(--accent-color);
-}
-
-.copy-history-header .clear-history-button:hover {
-    color: #ff6b6b;
-}
-
-.copy-history-content {
-    flex: 1;
-    overflow-y: auto;
-    padding: 15px;
-}
-
-/* Glitch Token Panel & End Sequences sidebar */
-.glitch-token-panel,
-.end-sequence-panel {
-    position: fixed;
-    right: 0;
-    top: 0;
-    width: 420px;
-    max-width: 90vw;
-    height: 100vh;
-    background-color: var(--secondary-bg);
-    border-left: 1px solid var(--input-border);
-    z-index: 100;
-    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.3);
     transform: translateX(100%);
     transition: transform 0.3s ease-in-out;
-    display: flex;
-    flex-direction: column;
-    padding: 0;
-    overflow: hidden;
+    z-index: 100;
 }
 
-.glitch-token-panel.active,
-.end-sequence-panel.active {
+.app-sidebar.active {
     transform: translateX(0);
 }
 
-@media (max-width: 768px) {
-    .glitch-token-panel,
-    .end-sequence-panel {
-        width: 94vw;
-        max-width: 94vw;
-    }
+/* Advanced settings above other slide-outs when stacked */
+.unicode-options-panel {
+    z-index: 200;
 }
 
-.glitch-token-header,
-.end-sequence-header {
+/* Sidebar header + actions (copy history, glitch, end sequences, advanced settings) */
+.app-sidebar-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -2058,25 +2066,35 @@ button.translate-custom-label-btn:hover .translate-custom-toggle-end {
     background-color: var(--button-bg);
 }
 
-.glitch-token-header h3 {
+.app-sidebar-header h3 {
     font-size: 1.2rem;
     margin: 0;
     color: var(--accent-color);
 }
 
 .end-sequence-header h3 {
-    font-size: 1.2rem;
-    margin: 0;
     color: #e85d4c;
 }
 
-.glitch-token-header .header-actions {
+.unicode-panel-header {
+    position: relative;
+    z-index: 300;
+    pointer-events: auto;
+    touch-action: manipulation;
+}
+
+.unicode-panel-header h3 {
+    font-size: 1.2rem;
+}
+
+.app-sidebar-header .header-actions {
     display: flex;
     gap: 10px;
     align-items: center;
 }
 
-.glitch-token-header .close-button {
+.app-sidebar-header .clear-history-button,
+.app-sidebar-header .close-button {
     background: none;
     border: none;
     color: var(--text-color);
@@ -2086,19 +2104,28 @@ button.translate-custom-label-btn:hover .translate-custom-toggle-end {
     transition: color 0.2s;
 }
 
-.glitch-token-header .close-button:hover {
+.app-sidebar-header .clear-history-button:hover,
+.app-sidebar-header .close-button:hover {
     color: var(--accent-color);
+}
+
+.app-sidebar-header .clear-history-button:hover {
+    color: #ff6b6b;
 }
 
 .end-sequence-header .close-button:hover {
     color: #e85d4c;
 }
 
-.glitch-token-content,
-.end-sequence-content {
+/* Scrollable body */
+.app-sidebar-body {
     flex: 1;
     overflow-y: auto;
     padding: 15px;
+}
+
+.glitch-token-content,
+.end-sequence-content {
     display: flex;
     flex-direction: column;
 }
@@ -3009,11 +3036,13 @@ body.transform-options-modal-open {
 
 .transform-options-number {
     -moz-appearance: textfield;
+    appearance: textfield;
 }
 
 .transform-options-number::-webkit-outer-spin-button,
 .transform-options-number::-webkit-inner-spin-button {
     -webkit-appearance: none;
+    appearance: none;
     margin: 0;
 }
 
@@ -3063,10 +3092,6 @@ body.transform-options-modal-open {
 .favorites-section .category-title {
     color: #ffd700;
     border-left-color: #ffd700;
-}
-
-.favorites-section .transform-buttons .transform-button-group {
-    width: 100%;
 }
 
 /* Output section */
@@ -3406,50 +3431,18 @@ body.transform-options-modal-open {
 }
 
 
-/* Global Unicode options panel (subtle, like copy history) */
-.unicode-options-panel {
-    position: fixed;
-    right: -360px;
-    top: 0;
-    width: 340px;
-    height: 100vh;
-    background: var(--secondary-bg);
-    border-left: 1px solid var(--input-border);
-    z-index: 200;
-    box-shadow: -5px 0 15px rgba(0,0,0,0.3);
-    transition: right 0.3s ease-in-out;
-    display: flex;
-    flex-direction: column;
-}
-
-.unicode-options-panel.active { right: 0; }
-
-.unicode-panel-header {
-    padding: 12px;
-    border-bottom: 1px solid var(--input-border);
+/* Unicode / Advanced Settings: shell + header close (touch-friendly) */
+.unicode-panel-header .close-button {
+    background: transparent;
+    border: none;
+    color: var(--text-color);
+    cursor: pointer;
+    padding: 8px;
+    min-width: 44px;
+    min-height: 44px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    position: relative;
-    z-index: 300;
-    pointer-events: auto;
-    touch-action: manipulation;
-}
-
-.unicode-panel-header h3 { margin: 0; color: var(--accent-color); font-size: 1rem; }
-
-.unicode-panel-content { padding: 12px; overflow-y: auto; }
-.unicode-panel-header .close-button { 
-    background: transparent; 
-    border: none; 
-    color: var(--text-color); 
-    cursor: pointer; 
-    padding: 8px; 
-    min-width: 44px; 
-    min-height: 44px; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
+    justify-content: center;
     font-size: 1.2rem;
     transition: all 0.2s ease;
     border-radius: 4px;
@@ -3805,10 +3798,6 @@ html {
 /* Reduce extra whitespace at bottom of tab cards */
 .tab-content .transform-layout > *:last-child { margin-bottom: 0; }
 
-.transform-layout {
-    position: relative;
-}
-
 /* Keep the transform input visible while scrolling */
 .transform-layout .input-section {
     position: sticky;
@@ -3819,16 +3808,8 @@ html {
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
-/* Mutation Lab actions */
-.mutation-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 10px 0 12px 0; }
-.mutation-actions .action-button, .mutation-actions .transform-button { white-space: nowrap; }
-.mutation-actions .action-button.copy { border-color: #1976d2; color: #90caf9; }
-.mutation-actions .action-button.copy:hover { color: #bbdefb; box-shadow: 0 0 0 1px rgba(144,202,249,.2) inset, 0 0 14px rgba(144,202,249,.18); }
-.mutation-actions .action-button.download { border-color: #2e7d32; color: #69f0ae; }
-.mutation-actions .action-button.download:hover { color: #b9f6ca; box-shadow: 0 0 0 1px rgba(105,240,174,.2) inset, 0 0 14px rgba(105,240,174,.18); }
-
-/* Toolbar rows without .mutation-actions (Gibberish, Tokenade generate rows) */
-.token-bomb-actions {
+/* Tool action toolbar — primary generate / copy / download rows */
+.tool-toolbar {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
@@ -3836,10 +3817,34 @@ html {
     margin: 10px 0 12px 0;
 }
 
-/* Primary “generate” actions — not transform-grid category tiles (add .tool-primary-btn) */
-.mutation-actions .transform-button.tool-primary-btn,
-.token-bomb-actions .transform-button.tool-primary-btn,
-.splitter-actions .transform-button.tool-primary-btn {
+.tool-toolbar .action-button,
+.tool-toolbar .transform-button {
+    white-space: nowrap;
+}
+
+.tool-toolbar .action-button.copy {
+    border-color: #1976d2;
+    color: #90caf9;
+}
+
+.tool-toolbar .action-button.copy:hover {
+    color: #bbdefb;
+    box-shadow: 0 0 0 1px rgba(144,202,249,.2) inset, 0 0 14px rgba(144,202,249,.18);
+}
+
+.tool-toolbar .action-button.download {
+    border-color: #2e7d32;
+    color: #69f0ae;
+}
+
+.tool-toolbar .action-button.download:hover {
+    color: #b9f6ca;
+    box-shadow: 0 0 0 1px rgba(105,240,174,.2) inset, 0 0 14px rgba(105,240,174,.18);
+}
+
+/* Primary “generate” actions — not transform-grid category tiles */
+.tool-toolbar .transform-button.tool-primary-btn {
+    flex: 1;
     flex-direction: row;
     align-items: center;
     justify-content: center;
@@ -3849,36 +3854,22 @@ html {
     height: auto;
     padding: 10px 20px;
     gap: 10px;
-}
-
-.mutation-actions .transform-button.tool-primary-btn:before,
-.mutation-actions .transform-button.tool-primary-btn:after,
-.token-bomb-actions .transform-button.tool-primary-btn:before,
-.token-bomb-actions .transform-button.tool-primary-btn:after,
-.splitter-actions .transform-button.tool-primary-btn:before,
-.splitter-actions .transform-button.tool-primary-btn:after {
-    display: none;
-}
-
-.mutation-actions .transform-button.tool-primary-btn,
-.token-bomb-actions .transform-button.tool-primary-btn,
-.splitter-actions .transform-button.tool-primary-btn {
-    flex: 1;
     background: linear-gradient(135deg, var(--accent-color), #42a5f5);
     color: var(--main-bg-color);
     border: 1px solid var(--accent-color);
     font-weight: 600;
 }
 
-.mutation-actions .transform-button.tool-primary-btn i,
-.token-bomb-actions .transform-button.tool-primary-btn i,
-.splitter-actions .transform-button.tool-primary-btn i {
+.tool-toolbar .transform-button.tool-primary-btn:before,
+.tool-toolbar .transform-button.tool-primary-btn:after {
+    display: none;
+}
+
+.tool-toolbar .transform-button.tool-primary-btn i {
     opacity: 0.95;
 }
 
-.mutation-actions .transform-button.tool-primary-btn:hover:not(:disabled),
-.token-bomb-actions .transform-button.tool-primary-btn:hover:not(:disabled),
-.splitter-actions .transform-button.tool-primary-btn:hover:not(:disabled) {
+.tool-toolbar .transform-button.tool-primary-btn:hover:not(:disabled) {
     background: linear-gradient(135deg, var(--accent-color), #42a5f5);
     border-color: var(--accent-color);
     color: var(--main-bg-color);
@@ -3887,24 +3878,26 @@ html {
     transform: translateY(-1px);
 }
 
-.mutation-actions .transform-button.tool-primary-btn:disabled,
-.token-bomb-actions .transform-button.tool-primary-btn:disabled,
-.splitter-actions .transform-button.tool-primary-btn:disabled {
+.tool-toolbar .transform-button.tool-primary-btn:disabled {
     opacity: 0.65;
     cursor: wait;
     filter: none;
 }
 
-/* Bijection — card + toolbar aligned with PromptCraft / Anti-Classifier */
-.bijection-section.transform-section {
+/* Bijection / PromptCraft / Anti-Classifier — shared card shell + section chrome */
+.bijection-section.transform-section,
+.promptcraft-section.transform-section,
+.anticlassifier-section.transform-section {
     background: var(--secondary-bg);
     border: 1px solid var(--input-border);
     border-radius: 8px;
     padding: 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--panel-shadow-soft);
 }
 
-.bijection-section .section-header h3 {
+.bijection-section .section-header h3,
+.promptcraft-section .section-header h3,
+.anticlassifier-section .section-header h3 {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -3914,7 +3907,9 @@ html {
     padding-left: 10px;
 }
 
-.bijection-section .section-header h3 small {
+.bijection-section .section-header h3 small,
+.promptcraft-section .section-header h3 small,
+.anticlassifier-section .section-header h3 small {
     font-size: 0.75rem;
     font-weight: 400;
     color: var(--text-muted);
@@ -3922,6 +3917,19 @@ html {
     border-radius: 999px;
     border: 1px solid var(--input-border);
     background: var(--main-bg-color);
+}
+
+.bijection-section .input-section,
+.promptcraft-section .input-section,
+.anticlassifier-section .input-section {
+    position: static;
+    top: auto;
+    z-index: auto;
+    background: var(--main-bg-color);
+    border: 1px solid var(--input-border);
+    border-radius: 6px;
+    margin-bottom: 12px;
+    box-shadow: none;
 }
 
 .bijection-section .bj-lede {
@@ -3936,17 +3944,6 @@ html {
     color: var(--accent-color);
     text-decoration: underline;
     text-underline-offset: 2px;
-}
-
-.bijection-section .input-section {
-    position: static;
-    top: auto;
-    z-index: auto;
-    background: var(--main-bg-color);
-    border: 1px solid var(--input-border);
-    border-radius: 6px;
-    margin-bottom: 12px;
-    box-shadow: none;
 }
 
 .bijection-section .bij-options.options-grid {
@@ -4032,7 +4029,8 @@ html {
     gap: 12px;
 }
 
-.bijection-section .bj-result-card {
+.bijection-section .bj-result-card,
+.pc-result-card {
     background: var(--main-bg-color);
     border: 1px solid var(--input-border);
     border-radius: 6px;
@@ -4049,7 +4047,8 @@ html {
     border-bottom: 1px solid var(--input-border);
 }
 
-.bijection-section .bj-result-num {
+.bijection-section .bj-result-num,
+.pc-result-num {
     font-size: 0.75rem;
     font-weight: 600;
     color: var(--accent-color);
@@ -4098,86 +4097,6 @@ html {
     font-size: 0.82rem;
     word-break: break-word;
     color: var(--text-muted);
-}
-
-/* PromptCraft — align with tab / transform chip styling */
-.promptcraft-section.transform-section {
-    background: var(--secondary-bg);
-    border: 1px solid var(--input-border);
-    border-radius: 8px;
-    padding: 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.promptcraft-section .section-header h3 {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-bottom: 4px;
-    border-left: 4px solid var(--accent-color);
-    padding-left: 10px;
-}
-
-.promptcraft-section .section-header h3 small {
-    font-size: 0.75rem;
-    font-weight: 400;
-    color: var(--text-muted);
-    padding: 2px 8px;
-    border-radius: 999px;
-    border: 1px solid var(--input-border);
-    background: var(--main-bg-color);
-}
-
-.promptcraft-section .input-section {
-    position: static;
-    top: auto;
-    z-index: auto;
-    background: var(--main-bg-color);
-    border: 1px solid var(--input-border);
-    border-radius: 6px;
-    margin-bottom: 12px;
-    box-shadow: none;
-}
-
-/* Anti-Classifier — same card treatment as PromptCraft */
-.anticlassifier-section.transform-section {
-    background: var(--secondary-bg);
-    border: 1px solid var(--input-border);
-    border-radius: 8px;
-    padding: 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.anticlassifier-section .section-header h3 {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-bottom: 4px;
-    border-left: 4px solid var(--accent-color);
-    padding-left: 10px;
-}
-
-.anticlassifier-section .section-header h3 small {
-    font-size: 0.75rem;
-    font-weight: 400;
-    color: var(--text-muted);
-    padding: 2px 8px;
-    border-radius: 999px;
-    border: 1px solid var(--input-border);
-    background: var(--main-bg-color);
-}
-
-.anticlassifier-section .input-section {
-    position: static;
-    top: auto;
-    z-index: auto;
-    background: var(--main-bg-color);
-    border: 1px solid var(--input-border);
-    border-radius: 6px;
-    margin-bottom: 12px;
-    box-shadow: none;
 }
 
 .pc-controls {
@@ -4283,13 +4202,6 @@ html {
     margin-top: 8px;
 }
 
-.pc-result-card {
-    background: var(--main-bg-color);
-    border: 1px solid var(--input-border);
-    border-radius: 6px;
-    padding: 12px;
-}
-
 .pc-result-header {
     display: flex;
     align-items: center;
@@ -4297,13 +4209,6 @@ html {
     margin-bottom: 8px;
     padding-bottom: 8px;
     border-bottom: 1px solid var(--input-border);
-}
-
-.pc-result-num {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--accent-color);
-    font-family: 'Courier New', monospace;
 }
 
 .pc-result-text {
@@ -4345,43 +4250,8 @@ html {
     }
 }
 
-/* Message Splitter Styles */
-.encapsulation-section {
-    margin-top: 16px;
-    padding: 16px;
-    background: var(--main-bg-color);
-    border: 1px solid var(--input-border);
-    border-radius: 8px;
-}
-
-.encapsulation-section .section-header {
-    margin-bottom: 16px;
-}
-
-.encapsulation-section .section-header h4 {
-    margin-bottom: 4px;
-    margin-top: 0;
-    color: var(--accent-color);
-    font-size: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.encapsulation-section .section-header p {
-    margin: 0;
-    color: var(--text-muted);
-    font-size: 0.9em;
-}
-
-.encapsulation-presets {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-}
-
-/* JSON/XML Fields Section */
+/* Message Splitter — encapsulation + JSON/XML field panels share chrome */
+.encapsulation-section,
 .json-fields-section,
 .xml-attributes-section {
     margin-top: 16px;
@@ -4391,11 +4261,13 @@ html {
     border-radius: 8px;
 }
 
+.encapsulation-section .section-header,
 .json-fields-section .section-header,
 .xml-attributes-section .section-header {
     margin-bottom: 16px;
 }
 
+.encapsulation-section .section-header h4,
 .json-fields-section .section-header h4,
 .xml-attributes-section .section-header h4 {
     margin-bottom: 4px;
@@ -4407,11 +4279,19 @@ html {
     gap: 8px;
 }
 
+.encapsulation-section .section-header p,
 .json-fields-section .section-header p,
 .xml-attributes-section .section-header p {
     margin: 0;
     color: var(--text-muted);
     font-size: 0.9em;
+}
+
+.encapsulation-presets {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
 }
 
 .field-row {
@@ -4462,8 +4342,6 @@ html {
 }
 
 .add-field-button {
-    margin-top: 8px;
-}
     margin-top: 12px;
 }
 
@@ -4780,15 +4658,6 @@ html {
     font-size: 0.9rem;
 }
 
-/* Splitter-specific action button styling */
-.splitter-actions {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    flex-wrap: wrap;
-    margin: 16px 0 12px 0;
-}
-
 .splitter-copy-option {
     margin-left: 0;
 }
@@ -4948,12 +4817,14 @@ html {
         margin: 4px 0;
     }
     
-    .splitter-actions {
+    .tool-toolbar {
         flex-direction: column;
         align-items: stretch;
+        gap: var(--spacing-sm);
     }
-    
-    .splitter-actions button {
+
+    .tool-toolbar button,
+    .tool-toolbar .switch {
         width: 100%;
     }
     
@@ -4968,10 +4839,28 @@ html {
         max-width: calc(50% - 4px);
     }
 
+    /* Translation (AI) language tiles: 2 columns on phones/tablets (grid is more reliable than flex here) */
+    .translate-lang-grid.translate-lang-grid-inline {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
     .translate-lang-grid-inline .translate-lang-btn {
-        flex: 0 0 calc(50% - 4px) !important;
+        flex: none;
+        width: 100%;
         min-width: 0;
-        max-width: calc(50% - 4px);
+        max-width: none;
+        white-space: normal;
+    }
+
+    .app-sidebar {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .unicode-options-panel {
+        z-index: 300;
     }
 }
 
@@ -5033,11 +4922,7 @@ html {
         max-width: calc(50% - 2px);
     }
 
-    .translate-lang-grid-inline .translate-lang-btn {
-        flex: 0 0 calc(50% - 2px) !important;
-        min-width: 0;
-        max-width: calc(50% - 2px);
-    }
+    /* Translation tiles: same 2-col grid as 768px (inherit from above) */
     
     /* Options grid single column on very small screens */
     .options-grid {
@@ -5050,17 +4935,6 @@ html {
     .hacker-controls {
         grid-template-columns: 1fr;
         gap: var(--spacing-sm);
-    }
-    
-    /* Unicode options panel full width */
-    .unicode-options-panel {
-        width: 100%;
-        right: -100%;
-        z-index: 300; /* Ensure it's above other content on mobile */
-    }
-    
-    .unicode-options-panel.active {
-        right: 0;
     }
     
     .unicode-panel-header .close-button {
@@ -5123,28 +4997,6 @@ html {
     .token-chip {
         padding: var(--spacing-xs) var(--spacing-xs);
         font-size: 0.85rem;
-    }
-    
-    /* Mutation actions stack */
-    .mutation-actions {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .mutation-actions button {
-        width: 100%;
-    }
-    
-    /* Splitter actions stack */
-    .splitter-actions {
-        flex-direction: column;
-        align-items: stretch;
-        gap: var(--spacing-sm);
-    }
-    
-    .splitter-actions button,
-    .splitter-actions .switch {
-        width: 100%;
     }
     
     /* Transform button preview text */
@@ -5254,16 +5106,6 @@ html {
     .legend-item {
         font-size: 0.75rem;
         padding: 3px var(--spacing-xs);
-    }
-    
-    /* Copy history panel full width */
-    .copy-history-panel {
-        width: 100%;
-        right: -100%;
-    }
-    
-    .copy-history-panel.active {
-        right: 0;
     }
     
     /* Transform chain items stack vertically */

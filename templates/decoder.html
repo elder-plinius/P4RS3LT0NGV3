@@ -3,7 +3,7 @@
                     <div class="input-section">
                         <div class="input-header">
                             <label for="decoder-input">Paste any encoded text to decode</label>
-                            <select v-model="selectedDecoder" @change="runUniversalDecode" style="margin-left: 15px; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--input-border); background: var(--button-bg); color: var(--text);">
+                            <select v-model="selectedDecoder" @change="runUniversalDecode" class="decoder-method-select">
                                 <option value="auto">🔍 Auto-detect</option>
                                 <option v-for="transform in getAllTransformsWithReverse()" :key="transform.name" :value="transform.name">
                                     {{ transform.name }}

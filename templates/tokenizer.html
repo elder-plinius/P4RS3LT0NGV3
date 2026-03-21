@@ -5,7 +5,7 @@
                             <h3><i class="fas fa-layer-group"></i> Tokenizer Visualization <small>{{ tokenizerEngine }}</small></h3>
                             <p>Paste text to see how different tokenizers segment it.</p>
                         </div>
-                        <div class="options-grid" style="margin-bottom:8px;">
+                        <div class="options-grid u-mb-8">
                             <label>
                                 Engine
                                 <select v-model="tokenizerEngine" @change="runTokenizer">
@@ -33,11 +33,11 @@
                                 <small>{{ tokenizerTokens.length }} total · {{ tokenizerWordCount }} words · {{ tokenizerCharCount }} chars</small>
                             </h4>
                         </div>
-                        <div class="token-tiles" v-if="tokenizerTokens.length" style="display:flex; flex-wrap:wrap; gap:6px;">
-                            <div v-for="(tok, i) in tokenizerTokens" :key="i" class="token-chip" style="background:var(--button-bg); border:1px solid var(--input-border); padding:6px 8px; border-radius:6px; font-family:'Fira Code', monospace;">
-                                <span style="opacity:.75; margin-right:6px;">{{ i }}</span>
+                        <div class="token-tiles tokenizer-tiles" v-if="tokenizerTokens.length">
+                            <div v-for="(tok, i) in tokenizerTokens" :key="i" class="token-chip token-chip--tokenizer">
+                                <span class="token-chip__idx">{{ i }}</span>
                                 <span>{{ tok.text }}</span>
-                                <span v-if="tok.id !== undefined" style="opacity:.6; margin-left:6px;">#{{ tok.id }}</span>
+                                <span v-if="tok.id !== undefined" class="token-chip__id">#{{ tok.id }}</span>
                             </div>
                         </div>
                         <div class="output-instructions" v-else>

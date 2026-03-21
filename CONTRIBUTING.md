@@ -69,9 +69,11 @@ P4RS3LT0NGV3/
 ├── tests/                   # Test suites
 │   ├── test_universal.js
 │   └── test_steganography_options.js
-├── css/                     # Stylesheets
-│   ├── style.css
-│   └── notification.css
+├── css/                     # Stylesheets (edit *.css, then npm run build:css)
+│   ├── style.css            # Source (readable)
+│   ├── style.min.css        # Generated; linked from HTML
+│   ├── notification.css
+│   └── notification.min.css
 ├── index.template.html      # Base HTML template (templates injected here)
 ├── index.html               # Generated file (created by build process)
 └── docs/                    # Documentation
