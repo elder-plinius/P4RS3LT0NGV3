@@ -1,0 +1,129 @@
+<div v-if="activeTab === 'promptcraft'" class="tab-content">
+    <div class="transform-layout">
+        <div class="transform-section promptcraft-section">
+            <div class="section-header">
+                <h3><i class="fas fa-wand-magic-sparkles"></i> PromptCraft <small>AI-assisted prompt mutation</small></h3>
+            </div>
+
+            <!-- API Key Modal -->
+            <div v-if="pcShowKeyModal" class="pc-key-modal">
+                <div class="pc-key-modal-content">
+                    <h4><i class="fas fa-key"></i> OpenRouter API Key</h4>
+                    <p class="pc-key-info">
+                        PromptCraft and Translation use <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">OpenRouter</a> to access 200+ AI models.
+                        Your key is stored <strong>only in your browser</strong> and sent <strong>only to OpenRouter</strong>.
+                    </p>
+                    <div class="pc-key-input-row">
+                        <input
+                            type="password"
+                            v-model="pcKeyInput"
+                            placeholder="sk-or-v1-..."
+                            @keyup.enter="pcSaveApiKey"
+                            autocomplete="off"
+                            spellcheck="false"
+                        />
+                        <button class="pc-key-save-btn" @click="pcSaveApiKey" :disabled="!pcKeyInput.trim()">
+                            <i class="fas fa-check"></i> Save
+                        </button>
+                    </div>
+                    <div class="pc-key-actions">
+                        <button class="pc-action-btn" @click="pcShowKeyModal = false">Cancel</button>
+                        <button v-if="pcHasApiKey()" class="pc-action-btn pc-revoke-btn" @click="pcRevokeApiKey">
+                            <i class="fas fa-trash"></i> Revoke Key
+                        </button>
+                    </div>
+                    <div v-if="pcError" class="pc-error" style="margin-top: 10px;">
+                        <i class="fas fa-exclamation-triangle"></i> {{ pcError }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-section">
+                <label>
+                    Source Prompt
+                    <textarea v-model="pcInput" placeholder="Enter your prompt to mutate..." rows="4"></textarea>
+                </label>
+            </div>
+
+            <div class="pc-controls">
+                <div class="pc-strategies">
+                    <label class="pc-label">Strategy</label>
+                    <div class="pc-strategy-grid">
+                        <button
+                            v-for="s in pcStrategies"
+                            :key="s.id"
+                            @click="pcStrategy = s.id"
+                            :class="'pc-strategy-btn' + (pcStrategy === s.id ? ' active' : '')"
+                            :title="s.desc"
+                        >
+                            <i :class="'fas ' + s.icon"></i>
+                            <span>{{ s.name }}</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div v-if="pcStrategy === 'custom'" class="pc-custom-instruction">
+                    <label>
+                        Custom Mutation Instruction
+                        <textarea v-model="pcCustomInstruction" placeholder="Describe how to mutate the prompt..." rows="2"></textarea>
+                    </label>
+                </div>
+
+                <div class="options-grid pc-options">
+                    <label>
+                        Model
+                        <select v-model="pcModel">
+                            <option v-for="m in pcModels" :key="m.id" :value="m.id">{{ m.name }} ({{ m.provider }})</option>
+                        </select>
+                    </label>
+                    <label>
+                        Variants
+                        <input type="number" v-model.number="pcCount" min="1" max="10" />
+                    </label>
+                </div>
+            </div>
+
+            <div class="token-bomb-actions mutation-actions">
+                <button class="transform-button pc-generate-btn" @click="pcRunMutation" :disabled="pcLoading">
+                    <i :class="pcLoading ? 'fas fa-spinner fa-spin' : 'fas fa-bolt'"></i>
+                    {{ pcLoading ? 'Generating...' : 'Mutate Prompt' }}
+                </button>
+                <button class="action-button copy" v-if="pcOutputs.length" @click="pcCopyAll">
+                    <i class="fas fa-copy"></i> Copy All
+                </button>
+                <button class="pc-action-btn" @click="pcShowKeyModal = true" :title="pcHasApiKey() ? 'API key set \u2714' : 'Set API key'">
+                    <i class="fas fa-key"></i> {{ pcHasApiKey() ? 'Key \u2714' : 'Set Key' }}
+                </button>
+            </div>
+
+            <div v-if="pcError && !pcShowKeyModal" class="pc-error">
+                <i class="fas fa-exclamation-triangle"></i> {{ pcError }}
+            </div>
+
+            <div class="output-container" v-if="pcOutputs.length">
+                <div class="pc-results">
+                    <div v-for="(out, i) in pcOutputs" :key="'pc-'+i" class="pc-result-card">
+                        <div class="pc-result-header">
+                            <span class="pc-result-num">#{{ i + 1 }}</span>
+                            <div class="pc-result-actions">
+                                <button class="pc-action-btn" @click="pcUseAsInput(out)" title="Use as new input">
+                                    <i class="fas fa-arrow-rotate-left"></i>
+                                </button>
+                                <button class="pc-action-btn" @click="pcCopyOutput(out)" title="Copy">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="pc-result-text">{{ out }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="!pcOutputs.length && !pcLoading && !pcError" class="pc-empty-state">
+                <i class="fas fa-wand-magic-sparkles"></i>
+                <p>Enter a prompt and choose a mutation strategy.</p>
+                <p><small>Uses OpenRouter API &mdash; click <i class="fas fa-key"></i> Set Key to get started.</small></p>
+            </div>
+        </div>
+    </div>
+</div>
