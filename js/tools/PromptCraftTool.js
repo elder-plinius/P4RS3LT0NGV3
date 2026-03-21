@@ -118,7 +118,7 @@ class PromptCraftTool extends Tool {
             pcRunMutation: async function() {
                 const apiKey = this.pcGetApiKey();
                 if (!apiKey) {
-                    this.pcError = 'No API key found. Set your OpenRouter key in PlinyOS first.';
+                    this.pcError = 'No API key found. Set your OpenRouter key in Advanced Settings first.';
                     return;
                 }
                 if (!this.pcInput.trim()) {
