@@ -14,16 +14,22 @@
 
             <div class="pc-controls">
                 <div class="pc-strategies">
-                    <label class="pc-label">Strategy</label>
-                    <div class="pc-strategy-grid">
+                    <div class="pc-label" id="pc-strategy-label">Strategy</div>
+                    <div
+                        class="pc-strategy-grid"
+                        role="group"
+                        aria-labelledby="pc-strategy-label"
+                    >
                         <button
                             v-for="s in pcStrategies"
                             :key="s.id"
+                            type="button"
                             @click="pcStrategy = s.id"
-                            :class="'pc-strategy-btn' + (pcStrategy === s.id ? ' active' : '')"
+                            :class="['pc-strategy-btn', { active: pcStrategy === s.id }]"
+                            :aria-pressed="pcStrategy === s.id ? 'true' : 'false'"
                             :title="s.desc"
                         >
-                            <i :class="'fas ' + s.icon"></i>
+                            <i :class="'fas ' + s.icon" aria-hidden="true"></i>
                             <span>{{ s.name }}</span>
                         </button>
                     </div>
@@ -47,11 +53,25 @@
                         Variants
                         <input type="number" v-model.number="pcCount" min="1" max="10" />
                     </label>
+                    <label
+                        class="slider-block"
+                        title="Sampling randomness: lower is more deterministic, higher is more varied (OpenRouter 0–2)."
+                    >
+                        Temperature
+                        <input
+                            type="range"
+                            v-model.number="pcTemperature"
+                            min="0"
+                            max="2"
+                            step="0.05"
+                        />
+                        <span class="slider-value">{{ Number(pcTemperature).toFixed(2) }}</span>
+                    </label>
                 </div>
             </div>
 
-            <div class="token-bomb-actions mutation-actions">
-                <button class="transform-button pc-generate-btn" @click="pcRunMutation" :disabled="pcLoading">
+            <div class="tool-toolbar">
+                <button type="button" class="transform-button pc-generate-btn tool-primary-btn" @click="pcRunMutation" :disabled="pcLoading">
                     <i :class="pcLoading ? 'fas fa-spinner fa-spin' : 'fas fa-bolt'"></i>
                     {{ pcLoading ? 'Generating...' : 'Mutate Prompt' }}
                 </button>

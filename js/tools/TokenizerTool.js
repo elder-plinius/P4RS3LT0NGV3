@@ -43,15 +43,56 @@ class TokenizerTool extends Tool {
                         if (!window.gptTok) {
                             window.gptTok = await import('https://cdn.jsdelivr.net/npm/gpt-tokenizer@2/+esm');
                         }
-                        const map = { cl100k: 'cl100k_base', o200k: 'o200k_base', p50k: 'p50k_base', r50k: 'r50k_base' };
+                        // Map UI names to library encoding names
+                        // Note: p50k_base doesn't exist - using p50k_edit (for editing models like code-davinci-edit-001)
+                        const map = { 
+                            cl100k: 'cl100k_base', 
+                            o200k: 'o200k_base', 
+                            p50k: 'p50k_edit', // p50k_base doesn't exist in gpt-tokenizer
+                            r50k: 'r50k_base' 
+                        };
                         const enc = map[engine];
-                        const ids = window.gptTok.encode(text, enc);
+                        
+                        // Check library API - might use get_encoding() or encode() directly
+                        let ids;
+                        let decoder;
+                        
+                        if (window.gptTok.get_encoding) {
+                            // Alternative API: get_encoding(name) returns encoder object
+                            const encoder = window.gptTok.get_encoding(enc);
+                            if (!encoder) {
+                                throw new Error(`Encoding ${enc} not found`);
+                            }
+                            ids = encoder.encode(text);
+                            decoder = encoder;
+                            console.log(`[Tokenizer] Using get_encoding API for ${enc}, got ${ids.length} tokens`);
+                        } else if (window.gptTok.encode) {
+                            // Standard API: encode(text, encoding)
+                            if (typeof window.gptTok.encode !== 'function') {
+                                throw new Error('Tokenizer library not loaded correctly');
+                            }
+                            ids = window.gptTok.encode(text, enc);
+                            if (!Array.isArray(ids)) {
+                                throw new Error(`Tokenizer returned invalid result for ${enc}`);
+                            }
+                            decoder = null; // Will use window.gptTok.decode
+                            console.log(`[Tokenizer] Using encode API for ${enc}, got ${ids.length} tokens`);
+                        } else {
+                            throw new Error('Tokenizer library API not recognized');
+                        }
+                        
                         for (const id of ids) {
-                            const piece = window.gptTok.decode([id], enc);
+                            let piece;
+                            if (decoder) {
+                                piece = decoder.decode([id]);
+                            } else {
+                                piece = window.gptTok.decode([id], enc);
+                            }
                             tokens.push({ id, text: piece });
                         }
                     } catch (e) {
                         console.warn('Failed to load/use gpt-tokenizer; falling back to bytes', e);
+                        console.warn('Error details:', e.message, 'Encoding attempted:', engine);
                         this.tokenizerEngine = 'byte';
                         return this.runTokenizer();
                     }

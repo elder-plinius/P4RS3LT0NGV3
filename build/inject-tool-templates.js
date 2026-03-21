@@ -11,6 +11,7 @@ console.log('📝 Injecting tool templates into index.html...\n');
 
 // Template files in order
 const templateFiles = [
+    'anticlassifier.html',
     'decoder.html',
     'steganography.html',
     'transforms.html',
@@ -18,6 +19,7 @@ const templateFiles = [
     'tokenade.html',
     'fuzzer.html',
     'tokenizer.html',
+    'bijection.html',
     'splitter.html',
     'gibberish.html'
 ];

@@ -10,7 +10,7 @@
                         </div>
 
                         <!-- Mode Selection -->
-                        <div class="button-group" style="margin-bottom: 16px;">
+                        <div class="button-group u-mb-16">
                             <button 
                                 :class="['btn', gibberishMode === 'random' ? 'btn-primary' : 'btn-secondary']"
                                 @click="gibberishMode = 'random'"
@@ -53,23 +53,23 @@
                                 </label>
                             </div>
 
-                            <div class="token-bomb-actions" style="margin: 16px 0;">
-                                <button class="transform-button" @click="sentenceToGibberish"><i class="fas fa-hammer"></i> Generate Gibberish</button>
+                            <div class="tool-toolbar">
+                                <button type="button" class="transform-button tool-primary-btn" @click="sentenceToGibberish"><i class="fas fa-hammer"></i> Generate Gibberish</button>
                             </div>
 
                             <div v-if="gibberishOutput" class="output-section">
                                 <div class="section-header">
                                     <h4><i class="fas fa-language"></i> Gibberish Output</h4>
                                 </div>
-                                <div style="position: relative;">
+                                <div class="textarea-copy-wrap">
                                     <textarea v-model="gibberishOutput" readonly rows="4"></textarea>
                                     <button class="copy-button" @click="copyToClipboard(gibberishOutput)" title="Copy"><i class="fas fa-copy"></i></button>
                                 </div>
 
-                                <div class="section-header" style="margin-top: 16px;">
+                                <div class="section-header u-mt-16">
                                     <h4><i class="fas fa-book"></i> Dictionary</h4>
                                 </div>
-                                <div style="position: relative;">
+                                <div class="textarea-copy-wrap">
                                     <textarea v-model="gibberishDictionary" readonly rows="3"></textarea>
                                     <button class="copy-button" @click="copyToClipboard(gibberishDictionary)" title="Copy"><i class="fas fa-copy"></i></button>
                                 </div>
@@ -79,7 +79,7 @@
                         <!-- Character Removal Mode -->
                         <div v-if="gibberishMode === 'removal'">
                             <!-- Sub-mode selection -->
-                            <div class="button-group" style="margin-bottom: 16px;">
+                            <div class="button-group u-mb-16">
                                 <button 
                                     :class="['btn', removalSubMode === 'random' ? 'btn-primary' : 'btn-secondary']"
                                     @click="removalSubMode = 'random'"
@@ -128,8 +128,8 @@
                                     </label>
                                 </div>
 
-                                <div class="token-bomb-actions" style="margin: 16px 0;">
-                                    <button class="transform-button" @click="generateRandomRemovals">
+                                <div class="tool-toolbar">
+                                    <button type="button" class="transform-button tool-primary-btn" @click="generateRandomRemovals">
                                         <i class="fas fa-dice"></i> Generate Variations
                                     </button>
                                     <button class="action-button copy" v-if="removalOutputs.length" @click="copyAllRemovals">
@@ -181,8 +181,8 @@
                                     </label>
                                 </div>
 
-                                <div class="token-bomb-actions" style="margin: 16px 0;">
-                                    <button class="transform-button" @click="generateSpecificRemoval">
+                                <div class="tool-toolbar">
+                                    <button type="button" class="transform-button tool-primary-btn" @click="generateSpecificRemoval">
                                         <i class="fas fa-eraser"></i> Remove Characters
                                     </button>
                                 </div>
@@ -191,7 +191,7 @@
                                     <div class="section-header">
                                         <h4><i class="fas fa-check"></i> Result</h4>
                                     </div>
-                                    <div style="position: relative;">
+                                    <div class="textarea-copy-wrap">
                                         <textarea v-model="removalSpecificOutput" readonly rows="4"></textarea>
                                         <button class="copy-button" @click="copyToClipboard(removalSpecificOutput)" title="Copy">
                                             <i class="fas fa-copy"></i>

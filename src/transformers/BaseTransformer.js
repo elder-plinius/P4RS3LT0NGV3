@@ -33,6 +33,17 @@
  *        canDecode: false,
  *        func: function(text) { ... }
  *    });
+ * 
+ * 4. Transform with user options (gear icon in UI) and optional input kind:
+ * 
+ *    export default new BaseTransformer({
+ *        name: 'Binary',
+ *        inputKind: 'textarea', // 'textarea' | 'text' — main transform input when active
+ *        configurableOptions: [
+ *            { id: 'byteSpacing', label: 'Space between bytes', type: 'boolean', default: true }
+ *        ],
+ *        func: function(text, options = {}) { ... }
+ *    });
  */
 
 export class BaseTransformer {
@@ -43,12 +54,15 @@ export class BaseTransformer {
      * @param {Function} config.func - Encoding function (required)
      * @param {number} [config.priority=85] - Decoder priority (1-310)
      * @param {Object} [config.map] - Character mapping (if provided, auto-generates reverse)
-     * @param {Function} [config.reverse] - Custom decoder function
+     * @param {Function} [config.reverse] - Custom decoder function (text, options) — options match encode prefs
      * @param {Function} [config.preview] - Preview function (defaults to func)
      * @param {Function} [config.detector] - Custom detection function (text) => boolean
      * @param {boolean} [config.canDecode=true] - Whether this transformer can decode
      * @param {string} [config.category] - Category for organization
      * @param {string} [config.description] - Help text
+     * @param {'textarea'|'text'} [config.inputKind='textarea'] - Transform input control when this transform is active
+     * @param {Array<Object>} [config.configurableOptions] - Option definitions; shows gear when non-empty
+     *        Each: { id, label, type: 'boolean'|'select'|'text'|'number', default, options?, min?, max?, step? }
      */
     constructor(config) {
         if (!config.name || !config.func) {

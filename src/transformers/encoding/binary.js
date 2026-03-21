@@ -4,6 +4,15 @@ import BaseTransformer from '../BaseTransformer.js';
 export default new BaseTransformer({
     name: 'Binary',
     priority: 300,
+    inputKind: 'textarea',
+    configurableOptions: [
+        {
+            id: 'byteSpacing',
+            label: 'Space between bytes',
+            type: 'boolean',
+            default: true
+        }
+    ],
     // Detector: Only 0s, 1s, and spaces
     detector: function(text) {
         const cleaned = text.trim();
@@ -11,18 +20,21 @@ export default new BaseTransformer({
         return noSpaces.length >= 8 && /^[01\s]+$/.test(cleaned);
     },
     
-    func: function(text) {
-            // Use TextEncoder to properly handle UTF-8 (including emoji)
+    func: function(text, options) {
+            options = options || {};
+            const spacing = options.byteSpacing !== false;
             const encoder = new TextEncoder();
             const bytes = encoder.encode(text);
-            return Array.from(bytes).map(b => b.toString(2).padStart(8, '0')).join(' ');
+            const bits = Array.from(bytes).map(b => b.toString(2).padStart(8, '0'));
+            return spacing ? bits.join(' ') : bits.join('');
         },
-        preview: function(text) {
+        preview: function(text, options) {
             if (!text) return '[binary]';
-            const full = this.func(text);
+            const full = this.func(text, options);
             return full.substring(0, 24) + (full.length > 24 ? '...' : '');
         },
-        reverse: function(text) {
+        reverse: function(text, options) {
+            options = options || {};
             // Remove spaces and ensure we have valid binary
             const binText = text.replace(/\s+/g, '');
             const bytes = [];

@@ -53,11 +53,27 @@
                 >
                     <i class="fas fa-sliders-h"></i>
                 </button>
+                <button 
+                    @click="toggleGlitchTokenPanel"
+                    class="history-button" 
+                    title="Glitch Tokens"
+                    aria-label="Glitch Tokens"
+                >
+                    <i class="fas fa-bug"></i>
+                </button>
+                <button 
+                    @click="toggleEndSequencePanel"
+                    class="history-button" 
+                    title="End sequences (delimiter strings)"
+                    aria-label="End sequences"
+                >
+                    <i class="fas fa-stop"></i>
+                </button>
             </div>
         </header>
 
         <div class="tabs">
-            <div class="tab-buttons">
+            <div class="tab-buttons" role="tablist" aria-label="Tools">
                 <!-- Dynamically generated tab buttons from tool registry -->
                 <button
                     v-for="tool in registeredTools"
@@ -66,9 +82,30 @@
                     :class="{ active: activeTab === tool.id }"
                     @click="switchToTab(tool.id)"
                     :title="tool.title"
+                    role="tab"
+                    :aria-selected="activeTab === tool.id"
                 >
                     <i :class="'fas ' + tool.icon"></i> {{ tool.name }}
                 </button>
+            </div>
+
+            <div class="tab-tool-select">
+                <label for="mobile-tool-select">Selected Tool</label>
+                <select
+                    id="mobile-tool-select"
+                    class="mobile-tool-dropdown"
+                    :value="activeTab"
+                    aria-label="Selected tool"
+                    @change="switchToTab($event.target.value)"
+                >
+                    <template v-for="tool in registeredTools">
+                        <option
+                            v-if="!tool.hidden"
+                            :key="tool.id"
+                            :value="tool.id"
+                        >{{ tool.name }}</option>
+                    </template>
+                </select>
             </div>
 
             <div id="tool-content-container">
@@ -77,8 +114,8 @@
         </div>
 
                     <!-- Copy History Panel -->
-            <div class="copy-history-panel" :class="{ 'active': showCopyHistory }">
-                <div class="copy-history-header">
+            <div class="app-sidebar copy-history-panel" :class="{ 'active': showCopyHistory }">
+                <div class="app-sidebar-header copy-history-header">
                     <h3><i class="fas fa-history"></i> Copy History</h3>
                     <div class="header-actions">
                         <button 
@@ -94,7 +131,7 @@
                         </button>
                     </div>
                 </div>
-                <div class="copy-history-content">
+                <div class="app-sidebar-body copy-history-content">
                     <div v-if="copyHistory.length === 0" class="no-history">
                         <p>No copy history yet. Use the app features to auto-copy content.</p>
                     </div>
@@ -120,17 +157,155 @@
                 </div>
             </div>
 
+            <!-- Glitch Tokens Panel -->
+            <div class="app-sidebar glitch-token-panel" :class="{ 'active': showGlitchTokenPanel }">
+                <div class="app-sidebar-header glitch-token-header">
+                    <h3><i class="fas fa-bug"></i> Glitch Tokens</h3>
+                    <div class="header-actions">
+                        <button class="close-button" @click="toggleGlitchTokenPanel" title="Close glitch tokens">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="app-sidebar-body glitch-token-content">
+                    <!-- Filter Section -->
+                    <div class="glitch-token-filters">
+                        <div class="filter-group">
+                            <label>Behavior:</label>
+                            <select v-model="glitchTokenBehavior" @change="filterGlitchTokens">
+                                <option value="">All Behaviors</option>
+                                <option value="UNSPEAKABLE">UNSPEAKABLE</option>
+                                <option value="POLYSEMANTIC">POLYSEMANTIC</option>
+                                <option value="GLITCHED_SPELLING">GLITCHED_SPELLING</option>
+                                <option value="CONTEXT_CORRUPTOR">CONTEXT_CORRUPTOR</option>
+                                <option value="LOOP_INDUCER">LOOP_INDUCER</option>
+                                <option value="IDENTITY_DISRUPTOR">IDENTITY_DISRUPTOR</option>
+                                <option value="FRAGMENT">FRAGMENT</option>
+                                <option value="CONTROL_CHARACTER">CONTROL_CHARACTER</option>
+                                <option value="SPECIAL_TOKEN">SPECIAL_TOKEN</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Search:</label>
+                            <input 
+                                type="text" 
+                                v-model="glitchTokenSearch" 
+                                @input="filterGlitchTokens"
+                                placeholder="Search tokens..."
+                            />
+                        </div>
+                    </div>
+                    
+                    <!-- Tokens List -->
+                    <div class="glitch-token-list">
+                        <div v-if="filteredGlitchTokens.length === 0" class="no-tokens">
+                            <p v-if="!glitchTokensLoaded">Loading glitch tokens...</p>
+                            <div v-else class="empty-state">
+                                <p><strong>No glitch tokens available.</strong></p>
+                                <p>Glitch token data is not bundled by default. To use this feature:</p>
+                                <ol style="text-align: left; margin: 10px 0; padding-left: 20px;">
+                                    <li>Obtain glitch token data (e.g., from AGGREGLITCH library)</li>
+                                    <li>Open browser console and run:<br/>
+                                        <code style="background: rgba(0,0,0,0.1); padding: 2px 4px; border-radius: 3px;">window.setGlitchTokensData(yourData)</code>
+                                    </li>
+                                    <li>Refresh the panel to see tokens</li>
+                                </ol>
+                                <p style="font-size: 0.9em; color: #666; margin-top: 10px;">
+                                    The data structure should match the AGGREGLITCH format with <code>glitch_tokens</code> containing categorized token arrays.
+                                </p>
+                            </div>
+                        </div>
+                        <div v-else class="token-cards">
+                            <div 
+                                v-for="(token, index) in filteredGlitchTokens" 
+                                :key="index"
+                                class="token-card"
+                                :class="'behavior-' + (token.behavior || '').toLowerCase()"
+                            >
+                                <div class="token-card-header">
+                                    <span class="token-text">{{ token.token || 'N/A' }}</span>
+                                    <button 
+                                        class="copy-token-button" 
+                                        @click="copyGlitchToken(token.token)"
+                                        title="Copy token"
+                                    >
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                                <div class="token-card-body">
+                                    <div class="token-badge" :class="'badge-' + (token.behavior || '').toLowerCase()">
+                                        {{ token.behavior || 'Unknown' }}
+                                    </div>
+                                    <div v-if="token.token_id" class="token-id">
+                                        ID: {{ token.token_id }}
+                                    </div>
+                                    <div v-if="token.origin" class="token-origin">
+                                        Origin: {{ token.origin }}
+                                    </div>
+                                    <div v-if="token.observed_output" class="token-output">
+                                        Observed: {{ token.observed_output }}
+                                    </div>
+                                    <div v-if="token.note" class="token-note">
+                                        {{ token.note }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- End sequences sidebar (delimiter / stop strings for research) -->
+            <div class="app-sidebar end-sequence-panel" :class="{ active: showEndSequencePanel }">
+                <div class="app-sidebar-header end-sequence-header">
+                    <h3><i class="fas fa-stop"></i> End sequences</h3>
+                    <div class="header-actions">
+                        <button class="close-button" type="button" @click="toggleEndSequencePanel" title="Close">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="app-sidebar-body end-sequence-content">
+                    <p class="end-sequence-lede">
+                        Strings sometimes used to probe delimiter and termination behavior. Copy into your payloads as needed for authorized testing.
+                    </p>
+                    <div
+                        v-for="cat in endSequenceCategories"
+                        :key="cat.title"
+                        class="endsequence-category"
+                    >
+                        <h4>{{ cat.title }}</h4>
+                        <div class="endsequence-items">
+                            <button
+                                v-for="(item, idx) in cat.items"
+                                :key="cat.title + '-' + idx"
+                                type="button"
+                                class="endsequence-item"
+                                @click="copyEndSequence(item.value)"
+                                :title="'Copy to clipboard'"
+                                :aria-label="'Copy ' + item.label"
+                            >
+                                <code class="endsequence-label">{{ item.label }}</code>
+                                <span class="endsequence-copy-affordance" aria-hidden="true">
+                                    <i class="fas fa-copy"></i>
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         <!-- Advanced Settings Panel (inside app so Vue bindings work) -->
-        <div id="unicode-options-panel" class="unicode-options-panel">
-            <div class="unicode-panel-header">
+        <div id="unicode-options-panel" class="app-sidebar unicode-options-panel">
+            <div class="app-sidebar-header unicode-panel-header">
                 <h3><i class="fas fa-sliders-h"></i> Advanced Settings</h3>
                 <button class="close-button" title="Close Advanced Settings"><i class="fas fa-times"></i></button>
             </div>
-            <div class="unicode-panel-content">
+            <div class="app-sidebar-body unicode-panel-content">
                 <!-- OpenRouter API Key -->
                 <div class="settings-section api-key-section">
                     <h4><i class="fas fa-key"></i> OpenRouter API Key</h4>
-                    <small class="settings-hint">Required for Translation and PromptCraft features. Stored locally in your browser only.</small>
+                    <small class="settings-hint">Required for Translation, PromptCraft, and Anti-Classifier. Stored locally in your browser only.</small>
                     <div class="api-key-input-row">
                         <input
                             :type="showApiKey ? 'text' : 'password'"
@@ -158,7 +333,7 @@
                 <!-- Steganography Options -->
                 <h4><i class="fas fa-user-secret"></i> Steganography Options</h4>
             </div>
-            <div class="unicode-panel-content options-grid steg-adv-panel">
+            <div class="app-sidebar-body unicode-panel-content options-grid steg-adv-panel">
                 <label>
                     Initial Presentation
                     <select class="steg-initial-presentation">
@@ -230,9 +405,16 @@
     <!-- Generated bundles -->
     <script src="js/bundles/transforms-bundle.js"></script>
     
+    <!-- Glitch Tokens Data -->
+    <script src="js/data/glitchTokens.js"></script>
+    <script src="js/data/endSequences.js"></script>
+    <script src="js/data/openrouterModels.js"></script>
+    <script src="js/data/anticlassifierPrompt.js"></script>
+    
     <!-- Load Configuration and Utilities (before modules that depend on them) -->
     <script src="js/config/constants.js"></script>
     <script src="js/utils/escapeParser.js"></script>
+    <script src="js/utils/glitchTokens.js"></script>
     <script src="js/utils/focus.js"></script>
     <script src="js/utils/notifications.js"></script>
     <script src="js/utils/history.js"></script>
@@ -242,10 +424,13 @@
     
     <!-- Core modules (feature libraries) -->
     <script src="js/core/steganography.js"></script>
+    <script src="js/core/transformOptions.js"></script>
     <script src="js/core/decoder.js"></script>
     
     <!-- Load Tool System -->
     <script src="js/tools/Tool.js"></script>
+    <script src="js/tools/AntiClassifierTool.js"></script>
+    <script src="js/tools/BijectionTool.js"></script>
     <script src="js/tools/DecodeTool.js"></script>
     <script src="js/tools/EmojiTool.js"></script>
     <script src="js/tools/GibberishTool.js"></script>
