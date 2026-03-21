@@ -20,7 +20,10 @@ const baseData = {
     unicodePanelToggleLock: false,
     unicodeApplyFlashTimeout: null,
     showDangerModal: false,
-    dangerThresholdTokens: window.CONFIG.DANGER_THRESHOLD_TOKENS
+    dangerThresholdTokens: window.CONFIG.DANGER_THRESHOLD_TOKENS,
+    openrouterApiKey: localStorage.getItem('openrouter-api-key') || '',
+    showApiKey: false,
+    apiKeySaved: false
 };
 
 const toolData = (window.toolRegistry && typeof window.toolRegistry.mergeVueData === 'function') 
@@ -253,6 +256,24 @@ window.app = new Vue({
             window.NotificationUtils.showCopiedPopup();
         },
         
+        saveApiKey() {
+            if (this.openrouterApiKey) {
+                localStorage.setItem('openrouter-api-key', this.openrouterApiKey);
+                this.apiKeySaved = true;
+                this.showNotification('API key saved', 'success');
+                setTimeout(() => { this.apiKeySaved = false; }, 2000);
+            }
+        },
+
+        clearApiKey() {
+            this.openrouterApiKey = '';
+            this.showApiKey = false;
+            localStorage.removeItem('openrouter-api-key');
+            localStorage.removeItem('openrouter_api_key');
+            localStorage.removeItem('plinyos-api-key');
+            this.showNotification('API key cleared', 'success');
+        },
+
         setupPasteHandlers() {
             const textareas = document.querySelectorAll('textarea');
             textareas.forEach(textarea => {

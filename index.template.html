@@ -59,10 +59,11 @@
         <div class="tabs">
             <div class="tab-buttons">
                 <!-- Dynamically generated tab buttons from tool registry -->
-                <button 
+                <button
                     v-for="tool in registeredTools"
+                    v-if="!tool.hidden"
                     :key="tool.id"
-                    :class="{ active: activeTab === tool.id }" 
+                    :class="{ active: activeTab === tool.id }"
                     @click="switchToTab(tool.id)"
                     :title="tool.title"
                 >
@@ -126,6 +127,39 @@
             <div class="unicode-panel-header">
                 <h3><i class="fas fa-sliders-h"></i> Advanced Settings</h3>
                 <button class="close-button" title="Close Advanced Settings"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="unicode-panel-content">
+                <!-- OpenRouter API Key -->
+                <div class="settings-section api-key-section">
+                    <h4><i class="fas fa-key"></i> OpenRouter API Key</h4>
+                    <small class="settings-hint">Required for Translation and PromptCraft features. Stored locally in your browser only.</small>
+                    <div class="api-key-input-row">
+                        <input
+                            :type="showApiKey ? 'text' : 'password'"
+                            :value="openrouterApiKey"
+                            @input="openrouterApiKey = $event.target.value"
+                            placeholder="sk-or-..."
+                            class="api-key-input"
+                            autocomplete="off"
+                            spellcheck="false"
+                        />
+                        <button class="api-key-toggle" @click="showApiKey = !showApiKey" :title="showApiKey ? 'Hide key' : 'Show key'">
+                            <i :class="showApiKey ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+                        </button>
+                    </div>
+                    <div class="api-key-actions">
+                        <button class="api-key-save" @click="saveApiKey" :disabled="!openrouterApiKey">
+                            <i class="fas fa-save"></i> Save Key
+                        </button>
+                        <button class="api-key-clear" @click="clearApiKey" v-if="openrouterApiKey">
+                            <i class="fas fa-trash"></i> Clear
+                        </button>
+                        <small v-if="apiKeySaved" class="apply-status">Saved</small>
+                    </div>
+                </div>
+                <hr class="settings-divider" />
+                <!-- Steganography Options -->
+                <h4><i class="fas fa-user-secret"></i> Steganography Options</h4>
             </div>
             <div class="unicode-panel-content options-grid steg-adv-panel">
                 <label>
@@ -219,10 +253,12 @@
     <script src="js/tools/EmojiTool.js"></script>
     <script src="js/tools/GibberishTool.js"></script>
     <script src="js/tools/MutationTool.js"></script>
+    <script src="js/tools/PromptCraftTool.js"></script>
     <script src="js/tools/SplitterTool.js"></script>
     <script src="js/tools/TokenadeTool.js"></script>
     <script src="js/tools/TokenizerTool.js"></script>
     <script src="js/tools/TransformTool.js"></script>
+    <script src="js/tools/TranslateTool.js"></script>
 <script src="js/core/toolRegistry.js"></script>
     
     <script src="js/app.js"></script>

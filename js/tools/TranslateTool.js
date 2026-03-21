@@ -5,11 +5,6 @@
  * from the Gemma 3 family. When available on OpenRouter, they'll be used directly.
  * For now, the TranslateGemma prompt template works excellently with standard Gemma 3
  * and Gemini models too.
- *
- * API Key Security:
- * - Same localStorage key lookup as PromptCraftTool
- * - Key is only ever sent to https://openrouter.ai/api/v1/chat/completions
- * - Never logged, never embedded in DOM
  */
 class TranslateTool extends Tool {
     constructor() {
@@ -20,7 +15,6 @@ class TranslateTool extends Tool {
             title: 'AI-powered translation via TranslateGemma prompt format',
             order: 10
         });
-        // Hidden from tab bar — renders inline inside the Transform tab
         this.hidden = true;
 
         this.langCodeMap = {
@@ -40,7 +34,7 @@ class TranslateTool extends Tool {
     }
 
     getVueData() {
-        var savedCustom = JSON.parse(localStorage.getItem('pc-custom-langs') || '[]');
+        const savedCustom = JSON.parse(localStorage.getItem('pc-custom-langs') || '[]');
         return {
             translateLoading: false,
             translateError: '',
@@ -66,7 +60,7 @@ class TranslateTool extends Tool {
                 { code: 'ar', name: 'Arabic', flag: 'SA' },
                 { code: 'ru', name: 'Russian', flag: 'RU' },
                 { code: 'hi', name: 'Hindi', flag: 'IN' },
-                { code: 'pt', name: 'Portuguese', flag: 'PT' }
+                { code: 'pt', name: 'Portuguese', flag: 'BR' }
             ],
             translateExoticLangs: [
                 { code: 'la', name: 'Latin', flag: 'VA', label: 'Dead' },
@@ -90,14 +84,16 @@ class TranslateTool extends Tool {
         var self = this;
         return {
             translateGetApiKey: function() {
-                return localStorage.getItem('openrouter-api-key') ||
-                       localStorage.getItem('openrouter_api_key') ||
-                       localStorage.getItem('plinyos-api-key') || '';
+                return localStorage.getItem('plinyos-api-key') ||
+                       localStorage.getItem('openrouter-api-key') ||
+                       localStorage.getItem('openrouter_api_key') || '';
             },
             translateGetLangCode: function(langName) {
                 return self.langCodeMap[langName] || langName.toLowerCase().slice(0, 3);
             },
             translateBuildPrompt: function(langName, langCode, text) {
+                // Use the official TranslateGemma prompt template format
+                // This works well with all Gemma/Gemini models, not just TranslateGemma
                 return 'You are a professional English (en) to ' + langName + ' (' + langCode + ') translator. ' +
                     'Your goal is to accurately convey the meaning and nuances of the original English text ' +
                     'while adhering to ' + langName + ' grammar, vocabulary, and cultural sensitivities. ' +
@@ -107,7 +103,7 @@ class TranslateTool extends Tool {
             translateTo: async function(langName) {
                 var apiKey = this.translateGetApiKey();
                 if (!apiKey) {
-                    this.translateError = 'No API key found. Set your OpenRouter key via the PromptCraft tab.';
+                    this.translateError = 'No API key. Set your OpenRouter key in PlinyOS settings.';
                     return;
                 }
                 var input = this.transformInput;
@@ -125,6 +121,7 @@ class TranslateTool extends Tool {
                 var prompt = this.translateBuildPrompt(langName, langCode, input);
                 var model = this.translateModel;
 
+                // For TranslateGemma models, use their native format
                 var isTranslateGemma = model.indexOf('translategemma') !== -1;
                 var messages;
                 if (isTranslateGemma) {
@@ -159,21 +156,19 @@ class TranslateTool extends Tool {
                     });
                     var data = await resp.json();
                     if (data.error) {
+                        // If TranslateGemma model not found, fall back to Gemma 3 27B
                         if (isTranslateGemma && (data.error.code === 404 || data.error.code === 400 ||
                             (data.error.message && data.error.message.indexOf('not found') !== -1))) {
-                            this.translateError = 'TranslateGemma not yet on OpenRouter \u2014 switching to Gemma 3 27B...';
+                            this.translateError = 'TranslateGemma not yet on OpenRouter — switching to Gemma 3 27B...';
                             this.translateModel = 'google/gemma-3-27b-it';
                             localStorage.setItem('translate-model', this.translateModel);
                             this.translateLoading = false;
                             this.translateActiveLang = '';
+                            // Retry with fallback
                             await this.translateTo(langName);
                             return;
                         }
-                        if (data.error.code === 401 || data.error.code === 403) {
-                            this.translateError = 'Invalid API key. Update your key via the PromptCraft tab.';
-                        } else {
-                            this.translateError = data.error.message || 'API error';
-                        }
+                        this.translateError = data.error.message || 'API error';
                     } else if (data.choices && data.choices[0]) {
                         var translated = data.choices[0].message.content.trim();
                         this.transformOutput = translated;
@@ -190,11 +185,6 @@ class TranslateTool extends Tool {
             translateAddCustomLang: function() {
                 var name = this.translateNewLangName.trim();
                 if (!name) return;
-                // Sanitize — allow only letters, spaces, hyphens
-                if (!/^[a-zA-Z\s\-]+$/.test(name)) {
-                    this.translateError = 'Language name can only contain letters, spaces, and hyphens.';
-                    return;
-                }
                 if (this.translateCustomLangs.some(function(l) { return l.name.toLowerCase() === name.toLowerCase(); })) return;
                 var code = self.langCodeMap[name] || name.toLowerCase().slice(0, 3);
                 this.translateCustomLangs.push({ code: code, name: name, flag: '++' });
@@ -216,9 +206,7 @@ class TranslateTool extends Tool {
                     'VA': '\uD83C\uDDFB\uD83C\uDDE6', 'GR': '\uD83C\uDDEC\uD83C\uDDF7',
                     'EG': '\uD83C\uDDEA\uD83C\uDDEC', 'GB': '\uD83C\uDDEC\uD83C\uDDE7',
                     'IQ': '\uD83C\uDDEE\uD83C\uDDF6', 'US': '\uD83C\uDDFA\uD83C\uDDF8',
-                    'KE': '\uD83C\uDDF0\uD83C\uDDEA', 'PT': '\uD83C\uDDF5\uD83C\uDDF9'
-
-
+                    'KE': '\uD83C\uDDF0\uD83C\uDDEA'
                 };
                 return flags[code] || '\uD83C\uDF10';
             }

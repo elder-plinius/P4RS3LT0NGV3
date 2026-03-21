@@ -5,39 +5,6 @@
                 <h3><i class="fas fa-wand-magic-sparkles"></i> PromptCraft <small>AI-assisted prompt mutation</small></h3>
             </div>
 
-            <!-- API Key Modal -->
-            <div v-if="pcShowKeyModal" class="pc-key-modal">
-                <div class="pc-key-modal-content">
-                    <h4><i class="fas fa-key"></i> OpenRouter API Key</h4>
-                    <p class="pc-key-info">
-                        PromptCraft and Translation use <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">OpenRouter</a> to access 200+ AI models.
-                        Your key is stored <strong>only in your browser</strong> and sent <strong>only to OpenRouter</strong>.
-                    </p>
-                    <div class="pc-key-input-row">
-                        <input
-                            type="password"
-                            v-model="pcKeyInput"
-                            placeholder="sk-or-v1-..."
-                            @keyup.enter="pcSaveApiKey"
-                            autocomplete="off"
-                            spellcheck="false"
-                        />
-                        <button class="pc-key-save-btn" @click="pcSaveApiKey" :disabled="!pcKeyInput.trim()">
-                            <i class="fas fa-check"></i> Save
-                        </button>
-                    </div>
-                    <div class="pc-key-actions">
-                        <button class="pc-action-btn" @click="pcShowKeyModal = false">Cancel</button>
-                        <button v-if="pcHasApiKey()" class="pc-action-btn pc-revoke-btn" @click="pcRevokeApiKey">
-                            <i class="fas fa-trash"></i> Revoke Key
-                        </button>
-                    </div>
-                    <div v-if="pcError" class="pc-error" style="margin-top: 10px;">
-                        <i class="fas fa-exclamation-triangle"></i> {{ pcError }}
-                    </div>
-                </div>
-            </div>
-
             <div class="input-section">
                 <label>
                     Source Prompt
@@ -91,12 +58,9 @@
                 <button class="action-button copy" v-if="pcOutputs.length" @click="pcCopyAll">
                     <i class="fas fa-copy"></i> Copy All
                 </button>
-                <button class="pc-action-btn" @click="pcShowKeyModal = true" :title="pcHasApiKey() ? 'API key set \u2714' : 'Set API key'">
-                    <i class="fas fa-key"></i> {{ pcHasApiKey() ? 'Key \u2714' : 'Set Key' }}
-                </button>
             </div>
 
-            <div v-if="pcError && !pcShowKeyModal" class="pc-error">
+            <div v-if="pcError" class="pc-error">
                 <i class="fas fa-exclamation-triangle"></i> {{ pcError }}
             </div>
 
@@ -122,7 +86,7 @@
             <div v-if="!pcOutputs.length && !pcLoading && !pcError" class="pc-empty-state">
                 <i class="fas fa-wand-magic-sparkles"></i>
                 <p>Enter a prompt and choose a mutation strategy.</p>
-                <p><small>Uses OpenRouter API &mdash; click <i class="fas fa-key"></i> Set Key to get started.</small></p>
+                <p><small>Uses OpenRouter API — requires an API key set in PlinyOS.</small></p>
             </div>
         </div>
     </div>
