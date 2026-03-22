@@ -22,7 +22,7 @@ class PromptCraftTool extends Tool {
             pcOutput: '',
             pcOutputs: [],
             pcStrategy: 'rephrase',
-            pcModel: localStorage.getItem('pc-model') || 'anthropic/claude-sonnet-4.6',
+            pcModel: localStorage.getItem('pc-model') || 'nousresearch/hermes-3-llama-3.1-405b',
             pcTemperature,
             pcCount: 3,
             pcLoading: false,
