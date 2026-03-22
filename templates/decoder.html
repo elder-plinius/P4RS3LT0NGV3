@@ -3,7 +3,7 @@
                     <div class="input-section">
                         <div class="input-header">
                             <label for="decoder-input">Paste any encoded text to decode</label>
-                            <select v-model="selectedDecoder" @change="runUniversalDecode" style="margin-left: 15px; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--input-border); background: var(--button-bg); color: var(--text);">
+                            <select v-model="selectedDecoder" @change="runUniversalDecode" class="decoder-method-select">
                                 <option value="auto">🔍 Auto-detect</option>
                                 <option v-for="transform in getAllTransformsWithReverse()" :key="transform.name" :value="transform.name">
                                     {{ transform.name }}
@@ -18,6 +18,30 @@
                         ></textarea>
                     </div>
                     
+                    <!-- Language Detection Banner -->
+                    <div v-if="decoderLangDetected" class="decoder-lang-banner">
+                        <div class="decoder-lang-info">
+                            <i class="fas fa-language"></i>
+                            <span>
+                                <strong>{{ decoderLangDetected.language }}</strong> detected
+                                <small v-if="decoderLangDetected.confidence === 'medium'" class="lang-confidence">(likely)</small>
+                            </span>
+                        </div>
+                        <div class="decoder-lang-actions">
+                            <button
+                                class="decoder-translate-btn"
+                                @click="decoderTranslateToEnglish"
+                                :disabled="decoderTranslating"
+                            >
+                                <i :class="decoderTranslating ? 'fas fa-spinner fa-spin' : 'fas fa-arrow-right'"></i>
+                                {{ decoderTranslating ? 'Translating...' : 'Translate to English' }}
+                            </button>
+                        </div>
+                        <div v-if="decoderTranslateError" class="decoder-translate-error">
+                            <i class="fas fa-exclamation-triangle"></i> {{ decoderTranslateError }}
+                        </div>
+                    </div>
+
                     <div class="output-section">
                         <div class="output-header">
                             <label>

@@ -4,24 +4,36 @@ import BaseTransformer from '../BaseTransformer.js';
 export default new BaseTransformer({
     name: 'Hexadecimal',
     priority: 290,
+    inputKind: 'textarea',
+    configurableOptions: [
+        {
+            id: 'pairSpacing',
+            label: 'Space between byte pairs',
+            type: 'boolean',
+            default: true
+        }
+    ],
     // Detector: Only hex characters (0-9, A-F)
     detector: function(text) {
         const cleaned = text.trim().replace(/\s/g, '');
         return cleaned.length >= 4 && /^[0-9A-Fa-f]+$/.test(cleaned);
     },
     
-    func: function(text) {
-            // Use TextEncoder to properly handle UTF-8 (including emoji)
+    func: function(text, options) {
+            options = options || {};
+            const spacing = options.pairSpacing !== false;
             const encoder = new TextEncoder();
             const bytes = encoder.encode(text);
-            return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' ');
+            const pairs = Array.from(bytes).map(b => b.toString(16).padStart(2, '0'));
+            return spacing ? pairs.join(' ') : pairs.join('');
         },
-        preview: function(text) {
+        preview: function(text, options) {
             if (!text) return '[hex]';
-            const full = this.func(text);
+            const full = this.func(text, options);
             return full.substring(0, 20) + (full.length > 20 ? '...' : '');
         },
-        reverse: function(text) {
+        reverse: function(text, options) {
+            options = options || {};
             const hexText = text.replace(/\s+/g, '');
             const bytes = [];
             

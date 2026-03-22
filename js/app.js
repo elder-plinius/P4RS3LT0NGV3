@@ -20,7 +20,20 @@ const baseData = {
     unicodePanelToggleLock: false,
     unicodeApplyFlashTimeout: null,
     showDangerModal: false,
-    dangerThresholdTokens: window.CONFIG.DANGER_THRESHOLD_TOKENS
+    dangerThresholdTokens: window.CONFIG.DANGER_THRESHOLD_TOKENS,
+    showGlitchTokenPanel: false,
+    showEndSequencePanel: false,
+    endSequenceCategories: (typeof window !== 'undefined' && window.END_SEQUENCE_CATEGORIES)
+        ? window.END_SEQUENCE_CATEGORIES
+        : [],
+    glitchTokensLoaded: false,
+    glitchTokenBehavior: '',
+    glitchTokenSearch: '',
+    filteredGlitchTokens: [],
+    allGlitchTokens: [],
+    openrouterApiKey: localStorage.getItem('openrouter-api-key') || '',
+    showApiKey: false,
+    apiKeySaved: false
 };
 
 const toolData = (window.toolRegistry && typeof window.toolRegistry.mergeVueData === 'function') 
@@ -154,6 +167,78 @@ window.app = new Vue({
                 });
             }
         },
+        
+        toggleGlitchTokenPanel(event) {
+            this.showGlitchTokenPanel = !this.showGlitchTokenPanel;
+            
+            // Load tokens if not already loaded
+            if (this.showGlitchTokenPanel && !this.glitchTokensLoaded) {
+                this.loadGlitchTokens();
+            }
+        },
+
+        toggleEndSequencePanel() {
+            this.showEndSequencePanel = !this.showEndSequencePanel;
+        },
+
+        copyEndSequence(value) {
+            if (!value) return;
+            this.copyToClipboard(value);
+            this.showNotification('Copied', 'success', 'fas fa-copy');
+        },
+        
+        async loadGlitchTokens() {
+            if (this.glitchTokensLoaded) return;
+            
+            try {
+                if (window.loadGlitchTokens) {
+                    await window.loadGlitchTokens();
+                }
+                
+                if (window.getAllGlitchTokens) {
+                    this.allGlitchTokens = window.getAllGlitchTokens();
+                    this.filteredGlitchTokens = this.allGlitchTokens;
+                    this.glitchTokensLoaded = true;
+                }
+            } catch (error) {
+                console.error('Error loading glitch tokens:', error);
+                this.showNotification('Failed to load glitch tokens', 'error', 'fas fa-exclamation-triangle');
+            }
+        },
+        
+        filterGlitchTokens() {
+            let filtered = this.allGlitchTokens;
+            
+            // Filter by behavior
+            if (this.glitchTokenBehavior) {
+                filtered = filtered.filter(token => token.behavior === this.glitchTokenBehavior);
+            }
+            
+            // Filter by search
+            if (this.glitchTokenSearch) {
+                const searchLower = this.glitchTokenSearch.toLowerCase();
+                filtered = filtered.filter(token => {
+                    const tokenText = (token.token || '').toLowerCase();
+                    const origin = (token.origin || '').toLowerCase();
+                    const observedOutput = (token.observed_output || '').toLowerCase();
+                    const tokenId = String(token.token_id || '');
+                    
+                    return tokenText.includes(searchLower) ||
+                           origin.includes(searchLower) ||
+                           observedOutput.includes(searchLower) ||
+                           tokenId.includes(searchLower);
+                });
+            }
+            
+            this.filteredGlitchTokens = filtered;
+        },
+        
+        copyGlitchToken(tokenText) {
+            if (!tokenText) return;
+            
+            this.copyToClipboard(tokenText);
+            this.showNotification('Glitch token copied!', 'success', 'fas fa-copy');
+        },
 
         addToCopyHistory(source, content) {
             window.HistoryUtils.addToHistory(
@@ -253,6 +338,26 @@ window.app = new Vue({
             window.NotificationUtils.showCopiedPopup();
         },
         
+        saveApiKey() {
+            var trimmed = (this.openrouterApiKey || '').trim();
+            if (trimmed) {
+                this.openrouterApiKey = trimmed;
+                localStorage.setItem('openrouter-api-key', trimmed);
+                this.apiKeySaved = true;
+                this.showNotification('API key saved', 'success');
+                setTimeout(() => { this.apiKeySaved = false; }, 2000);
+            }
+        },
+
+        clearApiKey() {
+            this.openrouterApiKey = '';
+            this.showApiKey = false;
+            localStorage.removeItem('openrouter-api-key');
+            localStorage.removeItem('openrouter_api_key');
+            localStorage.removeItem('plinyos-api-key');
+            this.showNotification('API key cleared', 'success');
+        },
+
         setupPasteHandlers() {
             const textareas = document.querySelectorAll('textarea');
             textareas.forEach(textarea => {

@@ -17,6 +17,10 @@ export default new BaseTransformer({
         reverse: function(text) {
             // Remove combining strikethrough characters
             return text.replace(/\u0336/g, '');
+        },
+        detector: function(text) {
+            // Check for combining strikethrough character (U+0336)
+            return /\u0336/.test(text);
         }
 
 });

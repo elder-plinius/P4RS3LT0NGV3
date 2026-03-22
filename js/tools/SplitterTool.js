@@ -8,21 +8,18 @@ class SplitterTool extends Tool {
             name: 'Splitter',
             icon: 'fa-grip-lines',
             title: 'Split text into multiple copyable messages',
-            order: 7
+            order: 8
         });
     }
     
     getVueData() {
-        // Load favorites
-        const favorites = this.loadFavorites();
-        
         // Load category order (same as TransformTool)
         const categoryOrder = this.getCategoryOrder();
         
         return {
             // Message Splitter Tab
             splitterInput: '',
-            splitterMode: 'word', // 'chunk' or 'word' - default to word
+            splitterMode: 'word', // 'chunk', 'word', 'sentence', 'line', 'pattern', 'token'
             splitterChunkSize: 6,
             splitterWordSplitSide: 'left', // 'left' or 'right' for even-length words
             splitterWordSkip: 0, // number of words to skip between splits
@@ -32,8 +29,13 @@ class SplitterTool extends Tool {
             splitterTransforms: [''], // array of transform names to apply in sequence (start with one empty slot)
             splitterStartWrap: '',
             splitterEndWrap: '',
+            splitterIteratorMarker: '{n}', // marker to replace with split number
+            splitterCustomPattern: '', // regex pattern for custom pattern mode
+            splitterPatternIncludeDelimiter: false, // include delimiter in split for pattern mode
+            splitterTokenizer: 'cl100k', // tokenizer for token-based mode
+            splitterTokenCount: 3, // token count per chunk for token-based mode
+            splitterPreserveEmptyLines: false, // preserve empty lines for line/sentence modes
             splitMessages: [],
-            favorites: favorites,
             categoryOrder: categoryOrder
         };
     }
@@ -97,50 +99,8 @@ class SplitterTool extends Tool {
         return [...uniqueFinal, 'randomizer'];
     }
     
-    loadFavorites() {
-        try {
-            const saved = localStorage.getItem('transformFavorites');
-            if (saved) {
-                const data = JSON.parse(saved);
-                // Filter to only include transforms that still exist
-                if (window.transforms) {
-                    return data.filter(transformName => {
-                        return Object.values(window.transforms).some(t => t.name === transformName);
-                    });
-                }
-            }
-        } catch (e) {
-            console.warn('Failed to load favorites:', e);
-        }
-        return [];
-    }
-    
     getVueMethods() {
         return {
-            /**
-             * Get favorite transforms
-             */
-            getFavoriteTransforms: function() {
-                if (!this.favorites || this.favorites.length === 0) {
-                    return [];
-                }
-                return this.favorites
-                    .map(transformName => {
-                        return this.transforms.find(t => t.name === transformName);
-                    })
-                    .filter(t => t !== undefined);
-            },
-            /**
-             * Get transforms by category (excluding favorites)
-             */
-            getTransformsByCategory: function(category) {
-                const categoryTransforms = this.transforms.filter(t => t.category === category);
-                // Exclude favorites from category lists (they're shown separately)
-                if (!this.favorites || this.favorites.length === 0) {
-                    return categoryTransforms;
-                }
-                return categoryTransforms.filter(t => !this.favorites.includes(t.name));
-            },
             /**
              * Get display name for category (capitalized)
              */
@@ -202,9 +162,9 @@ class SplitterTool extends Tool {
 
             /**
              * Generate split messages from input text
-             * Supports two modes: character chunks or split words in half
+             * Supports multiple modes: character chunks, split words, sentence, line, pattern, token
              */
-            generateSplitMessages() {
+            async generateSplitMessages() {
                 // Clear previous output at the start
                 this.splitMessages = [];
 
@@ -220,6 +180,99 @@ class SplitterTool extends Tool {
                     const chunkSize = Math.max(1, Math.min(500, this.splitterChunkSize || 6));
                     for (let i = 0; i < input.length; i += chunkSize) {
                         chunks.push(input.slice(i, i + chunkSize));
+                    }
+                } else if (this.splitterMode === 'sentence') {
+                    // Sentence mode - split by sentence boundaries
+                    const sentenceRegex = /[.!?]+/g;
+                    const sentences = input.split(sentenceRegex).filter(s => s.trim().length > 0);
+                    chunks = sentences.map(s => s.trim());
+                } else if (this.splitterMode === 'line') {
+                    // Line mode - split by newlines
+                    chunks = input.split(/\r?\n/).filter(line => line.trim().length > 0 || this.splitterPreserveEmptyLines);
+                } else if (this.splitterMode === 'pattern') {
+                    // Custom pattern mode - split by regex
+                    const pattern = this.splitterCustomPattern || '\\s+';
+                    try {
+                        const regex = new RegExp(pattern, 'g');
+                        if (this.splitterPatternIncludeDelimiter) {
+                            // Include delimiter
+                            const parts = input.split(regex);
+                            chunks = parts.filter(p => p.length > 0);
+                        } else {
+                            // Exclude delimiter
+                            chunks = input.split(regex).filter(p => p.trim().length > 0);
+                        }
+                    } catch (e) {
+                        console.error('Invalid regex pattern:', e);
+                        this.showNotification('Invalid regex pattern', 'error', 'fas fa-exclamation-triangle');
+                        return;
+                    }
+                } else if (this.splitterMode === 'token') {
+                    // Token-based mode - split by token count
+                    try {
+                        if (!window.gptTok) {
+                            window.gptTok = await import('https://cdn.jsdelivr.net/npm/gpt-tokenizer@2/+esm');
+                        }
+                        // Map UI names to library encoding names
+                        // Note: p50k_base doesn't exist - using p50k_edit (for editing models like code-davinci-edit-001)
+                        const map = { 
+                            cl100k: 'cl100k_base', 
+                            o200k: 'o200k_base', 
+                            p50k: 'p50k_edit', // p50k_base doesn't exist in gpt-tokenizer
+                            r50k: 'r50k_base' 
+                        };
+                        const enc = map[this.splitterTokenizer] || 'cl100k_base';
+                        const tokenCount = Math.max(1, Math.min(1000, this.splitterTokenCount || 3));
+                        
+                        // Debug: Log encoding being used
+                        console.log(`[Splitter] Using tokenizer: ${this.splitterTokenizer} -> ${enc}`);
+                        console.log(`[Splitter] gptTok object:`, window.gptTok);
+                        console.log(`[Splitter] encode function:`, window.gptTok?.encode);
+                        
+                        // Check if the library API is different - might need encoding-specific encoder
+                        let tokens;
+                        if (window.gptTok.get_encoding) {
+                            // Alternative API: get_encoding(name) returns encoder object
+                            const encoder = window.gptTok.get_encoding(enc);
+                            if (!encoder) {
+                                throw new Error(`Encoding ${enc} not found in library`);
+                            }
+                            tokens = encoder.encode(input);
+                            console.log(`[Splitter] Using get_encoding API, got ${tokens.length} tokens`);
+                        } else if (window.gptTok.encode) {
+                            // Standard API: encode(text, encoding)
+                            if (typeof window.gptTok.encode !== 'function') {
+                                throw new Error('Tokenizer library not loaded correctly');
+                            }
+                            tokens = window.gptTok.encode(input, enc);
+                            if (!Array.isArray(tokens)) {
+                                throw new Error(`Tokenizer returned invalid result for ${enc}`);
+                            }
+                            console.log(`[Splitter] Using encode API, got ${tokens.length} tokens`);
+                        } else {
+                            throw new Error('Tokenizer library API not recognized');
+                        }
+                        
+                        const tokenChunks = [];
+                        for (let i = 0; i < tokens.length; i += tokenCount) {
+                            const tokenChunk = tokens.slice(i, i + tokenCount);
+                            let text;
+                            if (window.gptTok.get_encoding) {
+                                const encoder = window.gptTok.get_encoding(enc);
+                                text = encoder.decode(tokenChunk);
+                            } else {
+                                text = window.gptTok.decode(tokenChunk, enc);
+                            }
+                            tokenChunks.push(text);
+                        }
+                        
+                        console.log(`[Splitter] Split into ${tokenChunks.length} chunks using ${enc}`);
+                        chunks = tokenChunks;
+                    } catch (e) {
+                        console.error('Tokenizer error:', e);
+                        const errorMsg = e.message || 'Failed to tokenize text';
+                        this.showNotification(`Tokenizer error: ${errorMsg}`, 'error', 'fas fa-exclamation-triangle');
+                        return;
                     }
                 } else if (this.splitterMode === 'word') {
                     // Word split mode - creates messages with pattern: secondHalf + wholeWords + firstHalf
@@ -328,29 +381,62 @@ class SplitterTool extends Tool {
                     const activeTransforms = this.splitterTransforms.filter(t => t && t !== '');
                     
                     if (activeTransforms.length > 0) {
-                        // Apply each transformation in sequence
+                        const getOpts = typeof window.getMergedTransformOptionsForName === 'function'
+                            ? function(name) {
+                                return window.getMergedTransformOptionsForName(name, this.transforms);
+                            }.bind(this)
+                            : function() {
+                                return {};
+                            };
+
+                        // Apply each transformation in sequence (same options as Transform tab)
                         for (const transformName of activeTransforms) {
                             const selectedTransform = this.transforms.find(t => t.name === transformName);
-                            if (selectedTransform && selectedTransform.func) {
+                            if (!selectedTransform || !selectedTransform.func) {
+                                continue;
+                            }
+
+                            if (transformName === 'Random Mix') {
                                 processedChunks = processedChunks.map(chunk => {
                                     try {
-                                        return selectedTransform.func(chunk);
+                                        return window.transforms && window.transforms.randomizer
+                                            ? window.transforms.randomizer.func(chunk)
+                                            : chunk;
                                     } catch (e) {
                                         console.error('Transform error:', e);
                                         return chunk;
                                     }
                                 });
+                                continue;
                             }
+
+                            const opts = getOpts(transformName);
+                            processedChunks = processedChunks.map(chunk => {
+                                try {
+                                    return selectedTransform.func(chunk, opts);
+                                } catch (e) {
+                                    console.error('Transform error:', e);
+                                    return chunk;
+                                }
+                            });
                         }
                     }
                 }
 
-                // Apply encapsulation
+                // Apply encapsulation with iterator replacement
                 const start = this.splitterStartWrap || '';
                 const end = this.splitterEndWrap || '';
-                this.splitMessages = processedChunks.map(chunk => `${start}${chunk}${end}`);
+                const marker = this.splitterIteratorMarker || '{n}';
+                
+                // Replace iterator marker with split number
+                this.splitMessages = processedChunks.map((chunk, index) => {
+                    const num = index + 1;
+                    const startReplaced = start.replace(new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), num);
+                    const endReplaced = end.replace(new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), num);
+                    return `${startReplaced}${chunk}${endReplaced}`;
+                });
             },
-
+            
             /**
              * Copy all split messages to clipboard
              * Single line: merges messages into one continuous string (keeps encapsulation/transformations)

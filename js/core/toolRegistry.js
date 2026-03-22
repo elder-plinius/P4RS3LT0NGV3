@@ -175,6 +175,12 @@ window.ToolRegistry = ToolRegistry;
 window.toolRegistry = new ToolRegistry();
 
 // Auto-register tools if they're available
+if (typeof AntiClassifierTool !== 'undefined') {
+    window.toolRegistry.register(new AntiClassifierTool());
+}
+if (typeof BijectionTool !== 'undefined') {
+    window.toolRegistry.register(new BijectionTool());
+}
 if (typeof DecodeTool !== 'undefined') {
     window.toolRegistry.register(new DecodeTool());
 }
@@ -187,6 +193,9 @@ if (typeof GibberishTool !== 'undefined') {
 if (typeof MutationTool !== 'undefined') {
     window.toolRegistry.register(new MutationTool());
 }
+if (typeof PromptCraftTool !== 'undefined') {
+    window.toolRegistry.register(new PromptCraftTool());
+}
 if (typeof SplitterTool !== 'undefined') {
     window.toolRegistry.register(new SplitterTool());
 }
@@ -198,6 +207,9 @@ if (typeof TokenizerTool !== 'undefined') {
 }
 if (typeof TransformTool !== 'undefined') {
     window.toolRegistry.register(new TransformTool());
+}
+if (typeof TranslateTool !== 'undefined') {
+    window.toolRegistry.register(new TranslateTool());
 }
 
 // Export for module systems
