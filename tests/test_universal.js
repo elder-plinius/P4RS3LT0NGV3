@@ -245,6 +245,10 @@ const limitations = {
         acceptPartial: true,
         caseInsensitive: true
     },
+    'standard_galactic': {
+        issues: 'Uppercase only',
+        acceptPartial: true
+    },
     'aurebesh': {
         issues: 'Uppercase only, removes whitespace',
         normalize: { uppercase: true, stripWhitespace: true },

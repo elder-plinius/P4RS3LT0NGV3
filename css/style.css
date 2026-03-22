@@ -2634,6 +2634,8 @@ button.endsequence-item:hover .endsequence-copy-affordance {
     transition: all 0.2s ease;
     overflow: visible;
     min-height: 70px;
+    word-wrap: break-word;
+    white-space: normal;
 }
 
 [class*="transform-category-"] {
