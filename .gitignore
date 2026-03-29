@@ -4,6 +4,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+.venv/
+__pycache__/
+*.py[cod]
 
 # Build outputs
 dist/
