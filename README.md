@@ -314,6 +314,25 @@ models
 
 **Alternative — run as a local app (npm / npx):** From the project root, after `npm install` and `npm run build`, use **`npm start`** (runs [`serve`](https://github.com/vercel/serve) on port **8080**) or **`npx serve dist -l 8080`**. Then open **http://localhost:8080** — same UI, stable URL you can bookmark. **`npm run preview`** runs a full **`npm run build`** and then serves **`dist/`** in one step.
 
+### Agent CLI
+
+This repo also ships a Python CLI that reuses the existing Node transform runtime without changing the static-site workflow.
+
+```bash
+uv run p4rs3lt0ngv3-cli list
+uv run p4rs3lt0ngv3-cli inspect caesar --json
+uv run p4rs3lt0ngv3-cli encode --transform base64 --text "Hello World"
+uv run p4rs3lt0ngv3-cli decode --transform base64 --text "SGVsbG8gV29ybGQ="
+uv run p4rs3lt0ngv3-cli auto-decode --text "SGVsbG8="
+uv run p4rs3lt0ngv3-cli agent "encode 'Attack at dawn' as caesar shift 5"
+```
+
+Notes:
+
+- The CLI is managed with **`uv`** via [`pyproject.toml`](pyproject.toml).
+- It shells into Node to execute the canonical transforms under `src/transformers/`.
+- Existing web build and Node test flows remain unchanged.
+
 ### **Development Setup**
 ```bash
 # Install dependencies
