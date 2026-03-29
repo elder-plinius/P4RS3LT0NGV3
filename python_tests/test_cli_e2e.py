@@ -88,3 +88,27 @@ def test_agent_can_chain_steps() -> None:
     payload = parse_json_output(process)
     assert payload["final_output"] == "Hi"
     assert len(payload["outputs"]) == 2
+
+
+def test_slash_command_encodes_text() -> None:
+    process = run_cli("/base64", "Hello")
+    assert process.returncode == 0, process.stderr
+    assert process.stdout.strip() == "SGVsbG8="
+
+
+def test_slash_command_decodes_text() -> None:
+    process = run_cli("/base64", "--decode", "SGVsbG8=")
+    assert process.returncode == 0, process.stderr
+    assert process.stdout.strip() == "Hello"
+
+
+def test_slash_command_supports_transform_flags() -> None:
+    process = run_cli("/caesar", "--shift", "5", "Attack", "at", "dawn")
+    assert process.returncode == 0, process.stderr
+    assert process.stdout.strip() == "Fyyfhp fy ifbs"
+
+
+def test_slash_command_supports_inspect() -> None:
+    process = run_cli("/inspect", "caesar", "--json")
+    payload = parse_json_output(process)
+    assert payload["key"] == "caesar"

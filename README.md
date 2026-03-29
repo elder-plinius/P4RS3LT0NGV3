@@ -325,6 +325,9 @@ uv run p4rs3lt0ngv3-cli encode --transform base64 --text "Hello World"
 uv run p4rs3lt0ngv3-cli decode --transform base64 --text "SGVsbG8gV29ybGQ="
 uv run p4rs3lt0ngv3-cli auto-decode --text "SGVsbG8="
 uv run p4rs3lt0ngv3-cli agent "encode 'Attack at dawn' as caesar shift 5"
+uv run p4rs3lt0ngv3-cli /base64 Hello
+uv run p4rs3lt0ngv3-cli /base64 --decode SGVsbG8=
+uv run p4rs3lt0ngv3-cli /caesar --shift 5 "Attack at dawn"
 ```
 
 Notes:
