@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "p4rs3lt0ngv3-cli"
+version = "0.1.0"
+description = "Agent-based CLI for the P4RS3LT0NGV3 transform catalog"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+p4rs3lt0ngv3-cli = "p4rs3lt0ngv3_cli.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["p4rs3lt0ngv3_cli"]
+
+[tool.pytest.ini_options]
+testpaths = ["python_tests"]
+addopts = "-q"
+
+[tool.uv]
+exclude-newer = "3 days"
