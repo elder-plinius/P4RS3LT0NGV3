@@ -468,6 +468,7 @@ This project is open source. See LICENSE file for details.
 - **Star Wars** creators for Aurebesh
 - **Bethesda** for Dovahzul language
 - **Unicode Consortium** for character standards
+- **Apogee Software / Commander Keen / Tom Hall** creator of Standard Galactic Alphabet, used in Minecraft Enchanting Table
 
 ---
 
