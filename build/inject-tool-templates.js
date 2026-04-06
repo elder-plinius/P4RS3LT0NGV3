@@ -55,17 +55,34 @@ let indexContent = fs.readFileSync(templatePath, 'utf8');
 
 // Find the tool-content-container
 const startMarker = '<div id="tool-content-container">';
-const endMarker = '</div>\n\n        </div>\n\n                    <!-- Copy History Panel -->';
-
 const startIndex = indexContent.indexOf(startMarker);
-const endIndex = indexContent.indexOf(endMarker);
 
-if (startIndex === -1 || endIndex === -1) {
-    console.error('\n❌ Could not find tool content container markers');
+if (startIndex === -1) {
+    console.error('\n❌ Could not find tool content container start marker');
     process.exit(1);
 }
 
+// Find the closing </div> of the tool-content-container
+// Look for the pattern: </div> (with possible whitespace) followed by </div> (tabs) and comment
+const afterStart = indexContent.substring(startIndex + startMarker.length);
+const containerEndMatch = afterStart.match(/<\/div>\s*\n\s*<\/div>\s*\n\s*<!-- Copy History Panel -->/);
+if (!containerEndMatch) {
+    console.error('\n❌ Could not find tool content container end marker');
+    console.error('   Looking for: </div> (container) -> </div> (tabs) -> <!-- Copy History Panel -->');
+    // Try to find just the closing div as fallback
+    const simpleEndMatch = afterStart.match(/<\/div>/);
+    if (simpleEndMatch) {
+        console.error('   Found closing </div> at position ' + simpleEndMatch.index);
+    }
+    process.exit(1);
+}
+
+// endIndex points to the closing </div> of the container
+const endIndex = startIndex + startMarker.length + containerEndMatch.index;
+
 // Build the replacement content
+// before: everything up to and including the opening tag
+// after: the closing </div> of container and everything after
 const before = indexContent.substring(0, startIndex + startMarker.length);
 const after = indexContent.substring(endIndex);
 
