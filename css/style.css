@@ -1,3 +1,6 @@
+/* SignWriting font (Google Fonts CDN) — only loads for ISWA codepoints via unicode-range */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SignWriting&display=swap');
+
 .danger-modal-backdrop { display: none; }
 .danger-modal-backdrop.danger-active { display: none; }
 .danger-modal { display: none; }
@@ -49,6 +52,8 @@
     --randomizer-color-rgb: 156, 39, 176;
     --case-color: #9575cd;          /* Indigo for case transformations */
     --case-color-rgb: 149, 117, 205;
+    --signwriting-color: #e6a23c;    /* Warm amber for SignWriting */
+    --signwriting-color-rgb: 230, 162, 60;
     
     /* Active state gradient end colors */
     --encoding-active-end: #9575cd;
@@ -62,6 +67,7 @@
     --technical-active-end: #26c6da;
     --randomizer-active-end: #ab47bc;
     --case-active-end: #b39ddb;
+    --signwriting-active-end: #f0c96e;
     
     /* Spacing scale */
     --spacing-xs: 4px;
@@ -2603,6 +2609,15 @@ button.endsequence-item:hover .endsequence-copy-affordance {
 
 .transform-category-case .transform-preview {
     color: rgba(var(--case-color-rgb), 0.9);
+}
+
+.transform-category-signwriting .transform-preview {
+    color: rgba(var(--signwriting-color-rgb), 0.9);
+    font-family: 'Noto Sans SignWriting', 'Fira Code', monospace;
+}
+
+.output-container textarea {
+    font-family: 'Noto Sans SignWriting', 'Fira Code', 'Courier New', monospace;
 }
 
 .transform-button:hover .transform-preview {
