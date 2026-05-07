@@ -661,10 +661,17 @@
                         <!-- API Key Configuration -->
                         <div class="api-key-section">
                             <div class="section-header">
-                                <h4>🔑 OpenAI API Configuration</h4>
-                                <p>Your API key is stored locally in your browser and never sent to our servers.</p>
+                                <h4>🔑 API Configuration</h4>
+                                <p>Select your provider and enter your API key. It is stored locally in your browser and never sent to our servers.</p>
                             </div>
-                            <div class="api-key-input">
+
+                            <div class="segmented" style="margin-bottom: 15px;">
+                                <div class="segmented-label">🤖 AI Provider</div>
+                                <button :class="{active: selectedProvider === 'openai'}" @click="selectedProvider = 'openai'">OpenAI</button>
+                                <button :class="{active: selectedProvider === 'groq'}" @click="selectedProvider = 'groq'">Groq</button>
+                            </div>
+
+                            <div class="api-key-input" v-if="selectedProvider === 'openai'">
                                 <label>
                                     <i class="fas fa-key"></i> OpenAI API Key
                                     <div class="api-key-wrapper">
@@ -688,11 +695,42 @@
                                 </label>
                                 <div class="api-status" v-if="openaiApiKey">
                                     <i class="fas fa-check-circle"></i>
-                                    <span>API key configured</span>
-                                    <button class="clear-api-key-btn" @click="clearApiKey" title="Clear API key from browser storage">
-                                        <i class="fas fa-trash"></i> Clear OpenAI Key from Local Browser Storage
-                                    </button>
+                                    <span>OpenAI Key Configured</span>
                                 </div>
+                            </div>
+
+                            <div class="api-key-input" v-if="selectedProvider === 'groq'">
+                                <label>
+                                    <i class="fas fa-key"></i> Groq API Key
+                                    <div class="api-key-wrapper">
+                                        <input 
+                                            type="password" 
+                                            v-model="groqApiKey" 
+                                            placeholder="gsk_..." 
+                                            @input="saveApiKey"
+                                            class="api-key-field"
+                                        />
+                                        <button 
+                                            class="toggle-visibility" 
+                                            @click="toggleApiKeyVisibility"
+                                            type="button"
+                                            :title="showApiKey ? 'Hide API key' : 'Show API key'"
+                                        >
+                                            <i :class="showApiKey ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+                                        </button>
+                                    </div>
+                                    <small>Get your API key from <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer">Groq Console</a></small>
+                                </label>
+                                <div class="api-status" v-if="groqApiKey">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Groq Key Configured</span>
+                                </div>
+                            </div>
+
+                            <div class="api-status" v-if="openaiApiKey || groqApiKey" style="margin-top: 10px;">
+                                <button class="clear-api-key-btn" @click="clearApiKey" title="Clear API keys from browser storage">
+                                    <i class="fas fa-trash"></i> Clear All Keys from Local Browser Storage
+                                </button>
                             </div>
                         </div>
 
@@ -715,7 +753,7 @@
                                 <button 
                                     class="transform-button" 
                                     @click="generateAntiClassifierResponse" 
-                                    :disabled="!openaiApiKey || !anticlassifierUserPrompt.trim() || isGenerating"
+                                    :disabled="(selectedProvider === 'openai' ? !openaiApiKey : !groqApiKey) || !anticlassifierUserPrompt.trim() || isGenerating"
                                 >
                                     <i :class="isGenerating ? 'fas fa-spinner fa-spin' : 'fas fa-magic'"></i>
                                     {{ isGenerating ? 'Generating...' : 'Generate Transformations' }}
@@ -726,12 +764,24 @@
                         <!-- Model Configuration -->
                         <div class="model-config-section">
                             <div class="options-grid">
-                                <label>
-                                    🤖 Model
+                                <label v-if="selectedProvider === 'openai'">
+                                    🤖 OpenAI Model
                                     <select v-model="openaiModel">
                                         <option value="gpt-4">GPT-4</option>
                                         <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                                        <option value="gpt-4o">GPT-4o</option>
                                         <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                                    </select>
+                                </label>
+                                <label v-if="selectedProvider === 'groq'">
+                                    🤖 Groq Model
+                                    <select v-model="groqModel">
+                                        <option value="llama-3.1-70b-versatile">Llama 3.1 70B</option>
+                                        <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
+                                        <option value="llama3-70b-8192">Llama 3 70B</option>
+                                        <option value="llama3-8b-8192">Llama 3 8B</option>
+                                        <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
+                                        <option value="gemma2-9b-it">Gemma 2 9B</option>
                                     </select>
                                 </label>
                                 <label class="slider-block">
@@ -755,7 +805,7 @@
                             </div>
                             <div class="response-container">
                                 <div class="response-header">
-                                    <span class="model-info">{{ openaiModel }}</span>
+                                    <span class="model-info">{{ selectedProvider === 'openai' ? openaiModel : groqModel }}</span>
                                     <button class="copy-button" @click="copyToClipboard(anticlassifierResponse)" title="Copy response">
                                         <i class="fas fa-copy"></i> Copy Response
                                     </button>

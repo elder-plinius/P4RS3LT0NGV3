@@ -82,8 +82,11 @@ window.app = new Vue({
         
         // Syntactic Anti-Classifier
         openaiApiKey: '',
+        groqApiKey: '',
+        selectedProvider: 'openai',
         showApiKey: false,
         openaiModel: 'gpt-4',
+        groqModel: 'llama-3.1-8b-instant',
         openaiTemperature: 0.7,
         openaiMaxTokens: 2000,
         anticlassifierUserPrompt: '',
@@ -2209,12 +2212,17 @@ Now, please translate and respond to this message in alphapr: ${encoded}`;
         // Syntactic Anti-Classifier Methods
         saveApiKey() {
             localStorage.setItem('openai_api_key', this.openaiApiKey);
+            localStorage.setItem('groq_api_key', this.groqApiKey);
         },
         
         loadApiKey() {
-            const savedKey = localStorage.getItem('openai_api_key');
-            if (savedKey) {
-                this.openaiApiKey = savedKey;
+            const savedOpenAIKey = localStorage.getItem('openai_api_key');
+            if (savedOpenAIKey) {
+                this.openaiApiKey = savedOpenAIKey;
+            }
+            const savedGroqKey = localStorage.getItem('groq_api_key');
+            if (savedGroqKey) {
+                this.groqApiKey = savedGroqKey;
             }
         },
         
@@ -2227,15 +2235,18 @@ Now, please translate and respond to this message in alphapr: ${encoded}`;
         },
         
         clearApiKey() {
-            if (confirm('Are you sure you want to clear your OpenAI API key from browser storage?')) {
+            if (confirm('Are you sure you want to clear your API keys from browser storage?')) {
                 this.openaiApiKey = '';
+                this.groqApiKey = '';
                 localStorage.removeItem('openai_api_key');
-                this.showNotification('<i class="fas fa-trash"></i> API key cleared from storage', 'success');
+                localStorage.removeItem('groq_api_key');
+                this.showNotification('<i class="fas fa-trash"></i> API keys cleared from storage', 'success');
             }
         },
         
         async generateAntiClassifierResponse() {
-            if (!this.openaiApiKey || !this.anticlassifierUserPrompt.trim()) {
+            const apiKey = this.selectedProvider === 'openai' ? this.openaiApiKey : this.groqApiKey;
+            if (!apiKey || !this.anticlassifierUserPrompt.trim()) {
                 return;
             }
             
@@ -2244,14 +2255,20 @@ Now, please translate and respond to this message in alphapr: ${encoded}`;
             this.anticlassifierResponse = '';
             
             try {
-                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                const endpoint = this.selectedProvider === 'openai' 
+                    ? 'https://api.openai.com/v1/chat/completions' 
+                    : 'https://api.groq.com/openai/v1/chat/completions';
+                
+                const model = this.selectedProvider === 'openai' ? this.openaiModel : this.groqModel;
+                
+                const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${this.openaiApiKey}`,
+                        'Authorization': `Bearer ${apiKey}`,
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        model: this.openaiModel,
+                        model: model,
                         messages: [
                             {
                                 role: 'system',
@@ -2277,11 +2294,11 @@ Now, please translate and respond to this message in alphapr: ${encoded}`;
                 if (data.choices && data.choices.length > 0) {
                     this.anticlassifierResponse = data.choices[0].message.content;
                 } else {
-                    throw new Error('No response generated from OpenAI API');
+                    throw new Error(`No response generated from ${this.selectedProvider === 'openai' ? 'OpenAI' : 'Groq'} API`);
                 }
                 
             } catch (error) {
-                console.error('OpenAI API Error:', error);
+                console.error(`${this.selectedProvider === 'openai' ? 'OpenAI' : 'Groq'} API Error:`, error);
                 this.anticlassifierError = error.message || 'An error occurred while generating the response';
             } finally {
                 this.isGenerating = false;
