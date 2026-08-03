@@ -344,10 +344,12 @@
                                 <h4><i class="fas fa-key"></i> AI Providers</h4>
                                 <small class="settings-hint">Save a key for each provider you use — every configured provider's models appear together in the tool dropdowns, so there's no active provider to switch. Keys are stored locally in your browser only.</small>
 
+                                <small v-if="aiCatalogError" class="openrouter-model-hint openrouter-model-hint-error">{{ aiCatalogError }}</small>
+
                                 <div v-for="p in aiProviders" :key="p.id" class="ai-provider-row">
                                     <div class="ai-provider-head">
                                         <strong>{{ p.name }}</strong>
-                                        <small v-if="aiProviderConfigured(p.id)" class="apply-status">configured</small>
+                                        <small v-if="aiProviderConfigured(p.id)" class="apply-status">{{ aiProviderModelCount(p.id) }} models</small>
                                         <small class="settings-hint" v-if="p.kind === 'anthropic'">Messages API</small>
                                     </div>
                                     <small class="settings-hint">{{ p.baseUrl }}</small>

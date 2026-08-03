@@ -233,6 +233,11 @@ window.AIProvider = {
     },
 
     clearApiKey: function(providerId) {
+        // Drop the cached catalog too — it was fetched with the old key.
+        delete this._fetched[providerId];
+        try {
+            localStorage.removeItem(this.MODEL_CACHE_PREFIX + providerId);
+        } catch (e) { /* ignore */ }
         try {
             if (providerId === 'openrouter') {
                 localStorage.removeItem('openrouter-api-key');
@@ -270,17 +275,123 @@ window.AIProvider = {
         });
     },
 
+    // ---- live model catalogs ----------------------------------------------
+
+    MODEL_CACHE_PREFIX: 'ai-models-cache-',
+    MODEL_CACHE_TTL_MS: 60 * 60 * 1000,
+
+    /** Per-session catalogs fetched from provider /models endpoints. */
+    _fetched: {},
+
+    loadModelCache: function(providerId, apiKey) {
+        try {
+            var raw = localStorage.getItem(this.MODEL_CACHE_PREFIX + providerId);
+            if (!raw) return null;
+            var parsed = JSON.parse(raw);
+            if (parsed.apiKey !== (apiKey || '')) return null;
+            if (Date.now() - parsed.fetchedAt > this.MODEL_CACHE_TTL_MS) return null;
+            return Array.isArray(parsed.models) && parsed.models.length ? parsed.models : null;
+        } catch (e) {
+            return null;
+        }
+    },
+
+    saveModelCache: function(providerId, apiKey, models) {
+        try {
+            localStorage.setItem(this.MODEL_CACHE_PREFIX + providerId, JSON.stringify({
+                apiKey: apiKey || '',
+                fetchedAt: Date.now(),
+                models: models
+            }));
+        } catch (e) {
+            console.warn('Failed to cache models for ' + providerId + ':', e);
+        }
+    },
+
+    /**
+     * Model ids that clearly aren't chat models. Provider /models endpoints
+     * return embeddings, image, audio, and moderation models too; those would
+     * only clutter a dropdown that exists to pick a chat model.
+     */
+    _isChatModel: function(id) {
+        return !/embed|whisper|tts|dall-e|imagen|veo|moderation|rerank|audio|realtime|transcribe|image-generation|aqa/i.test(id);
+    },
+
+    /**
+     * Fetch a provider's live model list. Returns [{id, name}], or null if the
+     * provider has no usable endpoint / the call fails — callers fall back to
+     * the provider's declared list, so this never hard-fails the dropdown.
+     */
+    fetchModels: async function(providerId, options) {
+        options = options || {};
+        var provider = this.getProvider(providerId);
+        if (!provider || providerId === 'openrouter') return null; // OpenRouter has its own path
+        var apiKey = this.getApiKey(providerId);
+        if (!apiKey || !provider.baseUrl) return null;
+
+        if (!options.force) {
+            var cached = this.loadModelCache(providerId, apiKey);
+            if (cached) {
+                this._fetched[providerId] = cached;
+                return cached;
+            }
+        }
+
+        var url = provider.baseUrl.replace(/\/+$/, '') + '/models';
+        var headers = provider.kind === 'anthropic'
+            ? {
+                'x-api-key': apiKey,
+                'anthropic-version': '2023-06-01',
+                'anthropic-dangerous-direct-browser-access': 'true'
+            }
+            : { 'Authorization': 'Bearer ' + apiKey };
+
+        var resp = await fetch(url, { headers: headers });
+        if (!resp.ok) {
+            var err = new Error(provider.name + ' model list failed (HTTP ' + resp.status + ')');
+            err.status = resp.status;
+            throw err;
+        }
+        var json = await resp.json();
+
+        var self = this;
+        var models = (json.data || [])
+            .map(function(m) {
+                // Gemini returns ids as "models/gemini-2.5-pro"
+                var id = String(m.id || '').replace(/^models\//, '');
+                return { id: id, name: m.display_name || id };
+            })
+            .filter(function(m) { return m.id && self._isChatModel(m.id); });
+
+        if (!models.length) return null;
+        models.sort(function(a, b) { return a.id.localeCompare(b.id); });
+
+        this._fetched[providerId] = models;
+        this.saveModelCache(providerId, apiKey, models);
+        return models;
+    },
+
+    /** Live catalog if we have one, else the provider's declared list. */
+    modelsFor: function(provider) {
+        var live = this._fetched[provider.id];
+        if (live && live.length) return live;
+        return (provider.models || []).map(function(id) {
+            return { id: id, name: id };
+        });
+    },
+
     /**
      * Every usable model across every configured provider, as dropdown rows.
-     * OpenRouter's live catalog is passed in (it's fetched separately);
-     * everyone else contributes their declared model list.
+     * OpenRouter's live catalog is passed in (it's fetched via OpenRouterModels,
+     * which also handles curation); everyone else uses their fetched-or-declared
+     * list.
      */
     getAllModels: function(openRouterCatalog) {
         var self = this;
         var rows = [];
         this.getConfiguredProviders().forEach(function(p) {
-            if (p.id === 'openrouter' && openRouterCatalog && openRouterCatalog.length) {
-                openRouterCatalog.forEach(function(m) {
+            if (p.id === 'openrouter') {
+                (openRouterCatalog || []).forEach(function(m) {
                     rows.push(Object.assign({}, m, {
                         id: self.qualify(p.id, m.id),
                         modelId: m.id,
@@ -290,11 +401,11 @@ window.AIProvider = {
                 });
                 return;
             }
-            (p.models || []).forEach(function(modelId) {
+            self.modelsFor(p).forEach(function(m) {
                 rows.push({
-                    id: self.qualify(p.id, modelId),
-                    modelId: modelId,
-                    name: modelId,
+                    id: self.qualify(p.id, m.id),
+                    modelId: m.id,
+                    name: m.name,
                     providerId: p.id,
                     providerName: p.name
                 });

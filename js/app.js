@@ -41,6 +41,7 @@ const baseData = {
     showApiKey: false,
     apiKeySaved: false,
     aiProviders: window.AIProvider ? window.AIProvider.getAllProviders() : [],
+    aiCatalogError: '',
     aiKeyDrafts: {},
     aiRevealedKeys: {},
     aiNewProviderName: '',
@@ -661,11 +662,42 @@ window.app = new Vue({
             }
         },
 
+        // Pull live model lists from every configured provider that exposes a
+        // /models endpoint. A failure is non-fatal — that provider just falls
+        // back to its built-in list, so one bad key can't empty the dropdown.
+        refreshProviderCatalogs: async function(force) {
+            var providers = window.AIProvider.getConfiguredProviders()
+                .filter(function(p) { return p.id !== 'openrouter'; });
+            if (!providers.length) {
+                this.aiCatalogError = '';
+                return;
+            }
+            var failures = [];
+            await Promise.all(providers.map(async function(p) {
+                try {
+                    await window.AIProvider.fetchModels(p.id, { force: !!force });
+                } catch (e) {
+                    failures.push(p.name + (e && e.status === 401 ? ' (invalid key)' : ''));
+                    console.warn('Model list fetch failed for ' + p.name + ':', e);
+                }
+            }));
+            // Wording stays accurate whether the provider falls back to its
+            // built-in list or keeps a previously fetched one.
+            this.aiCatalogError = failures.length
+                ? 'Could not refresh models from: ' + failures.join(', ')
+                : '';
+        },
+
         refreshOpenRouterModels: async function(force) {
             if (!window.OpenRouterModels) return;
             if (this.openRouterModelsLoading) return;
-            // Only OpenRouter has a fetchable catalog; other providers declare
-            // static model lists, so skip the fetch when it isn't configured.
+
+            // Other providers' catalogs first, so the dropdown rebuild below
+            // picks them up in the same pass.
+            await this.refreshProviderCatalogs(force);
+
+            // OpenRouter has its own catalog path (curation + key info); skip
+            // it entirely when no OpenRouter key is configured.
             if (!window.AIProvider.hasApiKey('openrouter')) {
                 this.openRouterModelsError = '';
                 this.openRouterModelsKeyInfo = null;
@@ -721,6 +753,12 @@ window.app = new Vue({
 
         aiProviderConfigured(id) {
             return !!(this.aiKeyDrafts[id] || '').trim();
+        },
+
+        aiProviderModelCount(id) {
+            if (id === 'openrouter') return this.openRouterModelsCatalog.length;
+            var p = window.AIProvider.getProvider(id);
+            return p ? window.AIProvider.modelsFor(p).length : 0;
         },
 
         toggleAiKeyVisible(id) {
