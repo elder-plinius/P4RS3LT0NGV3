@@ -32,8 +32,8 @@ class AntiClassifierTool extends Tool {
     getVueMethods() {
         return {
             acGetApiKey: function() {
-                var providerId = window.AIProvider.getSelectedId();
-                var key = window.AIProvider.getApiKey(providerId);
+                var providerId = window.AIProvider.parseModelId(this.acModel).providerId;
+                var key = window.AIProvider.keyForModel(this.acModel);
                 if (!key && providerId === 'openrouter' && this.openrouterApiKey) {
                     key = this.openrouterApiKey;
                     window.AIProvider.setApiKey(providerId, key);
@@ -53,8 +53,8 @@ class AntiClassifierTool extends Tool {
                 this.acLexemeAnalysis = window.LexemeAnalysis.analyze(this.acInput);
             },
             acRun: async function() {
-                const providerId = window.AIProvider.getSelectedId();
-                const providerLabel = window.AIProvider.getLabel(providerId);
+                const providerId = window.AIProvider.parseModelId(this.acModel).providerId;
+                const providerLabel = window.AIProvider.labelForModel(this.acModel);
                 const apiKey = this.acGetApiKey();
                 if (!apiKey) {
                     this.acError = 'No API key found. Set your ' + providerLabel + ' key in Advanced Settings first.';

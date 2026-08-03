@@ -46,8 +46,8 @@ class PromptCraftTool extends Tool {
     getVueMethods() {
         return {
             pcGetApiKey: function() {
-                var providerId = window.AIProvider.getSelectedId();
-                var key = window.AIProvider.getApiKey(providerId);
+                var providerId = window.AIProvider.parseModelId(this.pcModel).providerId;
+                var key = window.AIProvider.keyForModel(this.pcModel);
                 // Fallback: if nothing in localStorage, check the Vue data property
                 if (!key && providerId === 'openrouter' && this.openrouterApiKey) {
                     key = this.openrouterApiKey;
@@ -81,8 +81,8 @@ class PromptCraftTool extends Tool {
                 this.pcLexemeAnalysis = window.LexemeAnalysis.analyze(this.pcInput);
             },
             pcRunMutation: async function() {
-                const providerId = window.AIProvider.getSelectedId();
-                const providerLabel = window.AIProvider.getLabel(providerId);
+                const providerId = window.AIProvider.parseModelId(this.pcModel).providerId;
+                const providerLabel = window.AIProvider.labelForModel(this.pcModel);
                 const apiKey = this.pcGetApiKey();
                 if (!apiKey) {
                     this.pcError = 'No API key found. Set your ' + providerLabel + ' key in Advanced Settings first.';

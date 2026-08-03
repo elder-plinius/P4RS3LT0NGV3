@@ -1,33 +1,74 @@
 /**
- * Generic OpenAI-compatible chat-completions client, shared by every AI-backed
- * tool (Translate, PromptCraft, SpellingAlphabet, AntiClassifier, Decode).
+ * Multi-provider AI client, shared by every AI-backed tool (Translate,
+ * PromptCraft, SpellingAlphabet, AntiClassifier, Decode).
  *
- * Ships with built-in presets for OpenRouter (default) and audn.ai, plus a
- * user-managed list of custom OpenAI-compatible providers (any base URL +
- * API key + model), so more than one alternate endpoint can be saved and
- * switched between.
+ * Configure many providers at once (OpenRouter, OpenAI, Anthropic, Google,
+ * audn.ai, or any custom endpoint); each keeps its own API key. Models are
+ * addressed by a qualified id — "<providerId>::<modelId>" — so a single model
+ * dropdown can span every configured provider with no "active provider" to
+ * switch between. The provider is resolved from the model you pick.
+ *
+ * Two wire formats are supported:
+ *   kind: 'openai'    → POST {baseUrl}/chat/completions      (OpenAI-compatible)
+ *   kind: 'anthropic' → POST {baseUrl}/messages              (Anthropic Messages API)
+ *
+ * Google Gemini and OpenAI are reached through their OpenAI-compatible
+ * endpoints, so they use the 'openai' adapter.
  */
 window.AIProvider = {
-    SELECTED_STORAGE_KEY: 'ai-provider',
-    CUSTOM_STORAGE_KEY: 'ai-custom-providers-v1',
+    CUSTOM_STORAGE_KEY: 'ai-custom-providers-v2',
+    SEP: '::',
 
     BUILTIN: [
         {
             id: 'openrouter',
             name: 'OpenRouter',
+            kind: 'openai',
             baseUrl: 'https://openrouter.ai/api/v1',
             keyPlaceholder: 'sk-or-...',
             dynamicModels: true,
             builtin: true
         },
         {
+            id: 'anthropic',
+            name: 'Anthropic',
+            kind: 'anthropic',
+            baseUrl: 'https://api.anthropic.com/v1',
+            keyPlaceholder: 'sk-ant-...',
+            builtin: true,
+            models: [
+                'claude-opus-5',
+                'claude-sonnet-5',
+                'claude-haiku-4-5',
+                'claude-opus-4-8'
+            ]
+        },
+        {
+            id: 'openai',
+            name: 'OpenAI',
+            kind: 'openai',
+            baseUrl: 'https://api.openai.com/v1',
+            keyPlaceholder: 'sk-...',
+            builtin: true,
+            models: ['gpt-5', 'gpt-5-mini', 'o3', 'gpt-4.1']
+        },
+        {
+            id: 'google',
+            name: 'Google Gemini',
+            kind: 'openai', // via Gemini's OpenAI-compatible endpoint
+            baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
+            keyPlaceholder: 'AIza...',
+            builtin: true,
+            models: ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemma-3-27b-it']
+        },
+        {
             id: 'audn',
             name: 'audn.ai',
+            kind: 'openai',
             baseUrl: 'https://platform.audn.ai/api/v1',
             keyPlaceholder: 'sk_live_...',
-            dynamicModels: false,
-            models: ['pingu-unchained-10', 'kong', 'godzilla', 'necromicon'],
-            builtin: true
+            builtin: true,
+            models: ['pingu-unchained-10', 'kong', 'godzilla', 'necromicon']
         }
     ],
 
@@ -54,9 +95,15 @@ window.AIProvider = {
 
     genId: function() {
         if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-            return 'custom:' + crypto.randomUUID();
+            return 'custom-' + crypto.randomUUID().slice(0, 8);
         }
-        return 'custom:' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+        return 'custom-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    },
+
+    parseModelList: function(models) {
+        if (Array.isArray(models)) return models.slice();
+        if (!models) return [];
+        return String(models).split(',').map(function(s) { return s.trim(); }).filter(Boolean);
     },
 
     addCustomProvider: function(def) {
@@ -64,9 +111,10 @@ window.AIProvider = {
         var entry = {
             id: this.genId(),
             name: (def.name || '').trim() || 'Custom provider',
+            kind: def.kind === 'anthropic' ? 'anthropic' : 'openai',
             baseUrl: (def.baseUrl || '').trim().replace(/\/+$/, ''),
             apiKey: (def.apiKey || '').trim(),
-            models: Array.isArray(def.models) ? def.models : (def.models ? String(def.models).split(',').map(function(s) { return s.trim(); }).filter(Boolean) : [])
+            models: this.parseModelList(def.models)
         };
         list.push(entry);
         this.saveCustomProviders(list);
@@ -74,6 +122,7 @@ window.AIProvider = {
     },
 
     updateCustomProvider: function(id, patch) {
+        var self = this;
         var list = this.getCustomProviders();
         var found = false;
         list = list.map(function(p) {
@@ -87,9 +136,7 @@ window.AIProvider = {
                 next.apiKey = patch.apiKey.trim();
             }
             if (patch && patch.models !== undefined) {
-                next.models = Array.isArray(patch.models)
-                    ? patch.models
-                    : String(patch.models).split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+                next.models = self.parseModelList(patch.models);
             }
             return next;
         });
@@ -98,11 +145,9 @@ window.AIProvider = {
     },
 
     removeCustomProvider: function(id) {
-        var list = this.getCustomProviders().filter(function(p) { return p.id !== id; });
-        this.saveCustomProviders(list);
-        if (this.getSelectedId() === id) {
-            this.setSelectedId('openrouter');
-        }
+        this.saveCustomProviders(this.getCustomProviders().filter(function(p) {
+            return p.id !== id;
+        }));
     },
 
     // ---- lookup -----------------------------------------------------------
@@ -111,52 +156,50 @@ window.AIProvider = {
         return this.BUILTIN.concat(this.getCustomProviders());
     },
 
-    getPreset: function(id) {
-        id = id || this.getSelectedId();
+    getProvider: function(id) {
         var all = this.getAllProviders();
-        var found = all.filter(function(p) { return p.id === id; })[0];
-        return found || this.BUILTIN[0];
-    },
-
-    // ---- selection ----------------------------------------------------------
-
-    getSelectedId: function() {
-        try {
-            // Default: OpenRouter if the user already has a key saved there
-            // (preserves original behavior for existing users), else 'openrouter'
-            // as the standing default regardless.
-            return localStorage.getItem(this.SELECTED_STORAGE_KEY) || 'openrouter';
-        } catch (e) {
-            return 'openrouter';
+        for (var i = 0; i < all.length; i++) {
+            if (all[i].id === id) return all[i];
         }
-    },
-
-    setSelectedId: function(id) {
-        try {
-            localStorage.setItem(this.SELECTED_STORAGE_KEY, id);
-        } catch (e) {
-            console.warn('Failed to save selected AI provider:', e);
-        }
+        return null;
     },
 
     getLabel: function(id) {
-        return this.getPreset(id || this.getSelectedId()).name;
-    },
-
-    getBaseUrl: function(id) {
-        return this.getPreset(id).baseUrl || '';
+        var p = this.getProvider(id);
+        return p ? p.name : (id || 'provider');
     },
 
     isCustomId: function(id) {
-        return typeof id === 'string' && id.indexOf('custom:') === 0;
+        return typeof id === 'string' && id.indexOf('custom-') === 0;
     },
 
-    // ---- API keys -----------------------------------------------------------
+    // ---- qualified model ids ("providerId::modelId") ----------------------
 
-    getApiKey: function(id) {
-        id = id || this.getSelectedId();
+    qualify: function(providerId, modelId) {
+        return providerId + this.SEP + modelId;
+    },
+
+    /**
+     * Split a qualified model id. Bare ids (no separator) are treated as
+     * OpenRouter models so existing saved preferences keep working.
+     */
+    parseModelId: function(qualified) {
+        var raw = String(qualified || '');
+        var idx = raw.indexOf(this.SEP);
+        if (idx === -1) {
+            return { providerId: 'openrouter', modelId: raw };
+        }
+        return {
+            providerId: raw.slice(0, idx),
+            modelId: raw.slice(idx + this.SEP.length)
+        };
+    },
+
+    // ---- API keys ---------------------------------------------------------
+
+    getApiKey: function(providerId) {
         try {
-            if (id === 'openrouter') {
+            if (providerId === 'openrouter') {
                 return (
                     localStorage.getItem('openrouter-api-key') ||
                     localStorage.getItem('plinyos-api-key') ||
@@ -164,123 +207,253 @@ window.AIProvider = {
                     ''
                 ).trim();
             }
-            if (this.isCustomId(id)) {
-                var preset = this.getPreset(id);
-                return (preset && preset.apiKey || '').trim();
+            if (this.isCustomId(providerId)) {
+                var p = this.getProvider(providerId);
+                return ((p && p.apiKey) || '').trim();
             }
-            return (localStorage.getItem(id + '-api-key') || '').trim();
+            return (localStorage.getItem(providerId + '-api-key') || '').trim();
         } catch (e) {
             return '';
         }
     },
 
-    setApiKey: function(id, key) {
-        id = id || this.getSelectedId();
+    setApiKey: function(providerId, key) {
         key = (key || '').trim();
         try {
-            if (id === 'openrouter') {
+            if (providerId === 'openrouter') {
                 localStorage.setItem('openrouter-api-key', key);
-            } else if (this.isCustomId(id)) {
-                this.updateCustomProvider(id, { apiKey: key });
+            } else if (this.isCustomId(providerId)) {
+                this.updateCustomProvider(providerId, { apiKey: key });
             } else {
-                localStorage.setItem(id + '-api-key', key);
+                localStorage.setItem(providerId + '-api-key', key);
             }
         } catch (e) {
             console.warn('Failed to save API key:', e);
         }
     },
 
-    clearApiKey: function(id) {
-        id = id || this.getSelectedId();
+    clearApiKey: function(providerId) {
         try {
-            if (id === 'openrouter') {
+            if (providerId === 'openrouter') {
                 localStorage.removeItem('openrouter-api-key');
                 localStorage.removeItem('plinyos-api-key');
                 localStorage.removeItem('openrouter_api_key');
-            } else if (this.isCustomId(id)) {
-                this.updateCustomProvider(id, { apiKey: '' });
+            } else if (this.isCustomId(providerId)) {
+                this.updateCustomProvider(providerId, { apiKey: '' });
             } else {
-                localStorage.removeItem(id + '-api-key');
+                localStorage.removeItem(providerId + '-api-key');
             }
         } catch (e) {
             console.warn('Failed to clear API key:', e);
         }
     },
 
-    // ---- requests -----------------------------------------------------------
+    hasApiKey: function(providerId) {
+        return !!this.getApiKey(providerId);
+    },
 
-    endpointUrl: function(id) {
-        var base = this.getBaseUrl(id);
-        if (!base) return '';
-        return base.replace(/\/+$/, '') + '/chat/completions';
+    /** Key for whichever provider owns this qualified model id. */
+    keyForModel: function(qualifiedModelId) {
+        return this.getApiKey(this.parseModelId(qualifiedModelId).providerId);
+    },
+
+    /** Display name for whichever provider owns this qualified model id. */
+    labelForModel: function(qualifiedModelId) {
+        return this.getLabel(this.parseModelId(qualifiedModelId).providerId);
+    },
+
+    /** Providers with a key saved — the ones whose models are usable. */
+    getConfiguredProviders: function() {
+        var self = this;
+        return this.getAllProviders().filter(function(p) {
+            return self.hasApiKey(p.id);
+        });
     },
 
     /**
-     * POST messages to the selected (or explicitly given) provider's
-     * /chat/completions endpoint. Throws an Error with .status/.data set
-     * on HTTP or API-level errors so callers can branch on status codes.
+     * Every usable model across every configured provider, as dropdown rows.
+     * OpenRouter's live catalog is passed in (it's fetched separately);
+     * everyone else contributes their declared model list.
+     */
+    getAllModels: function(openRouterCatalog) {
+        var self = this;
+        var rows = [];
+        this.getConfiguredProviders().forEach(function(p) {
+            if (p.id === 'openrouter' && openRouterCatalog && openRouterCatalog.length) {
+                openRouterCatalog.forEach(function(m) {
+                    rows.push(Object.assign({}, m, {
+                        id: self.qualify(p.id, m.id),
+                        modelId: m.id,
+                        providerId: p.id,
+                        providerName: p.name
+                    }));
+                });
+                return;
+            }
+            (p.models || []).forEach(function(modelId) {
+                rows.push({
+                    id: self.qualify(p.id, modelId),
+                    modelId: modelId,
+                    name: modelId,
+                    providerId: p.id,
+                    providerName: p.name
+                });
+            });
+        });
+        return rows;
+    },
+
+    // ---- requests ---------------------------------------------------------
+
+    /**
+     * POST a chat completion. `opts.model` is a qualified id; the provider and
+     * wire format are resolved from it. Throws an Error with .status/.data set
+     * so callers can branch on status codes.
      */
     chatCompletion: async function(messages, opts) {
         opts = opts || {};
-        var id = opts.provider || this.getSelectedId();
-        var apiKey = opts.apiKey || this.getApiKey(id);
-        var url = opts.url || this.endpointUrl(id);
+        var parsed = this.parseModelId(opts.model);
+        var providerId = opts.provider || parsed.providerId;
+        var modelId = parsed.modelId;
+        var provider = this.getProvider(providerId);
 
-        if (!url) {
-            var noUrlErr = new Error('No API base URL configured for ' + this.getLabel(id) + '.');
-            noUrlErr.userFacing = true;
-            throw noUrlErr;
+        if (!provider) {
+            var noProv = new Error('Unknown provider "' + providerId + '". Check Settings → AI Providers.');
+            noProv.userFacing = true;
+            throw noProv;
+        }
+
+        var apiKey = opts.apiKey || this.getApiKey(providerId);
+        if (!provider.baseUrl) {
+            var noUrl = new Error('No API base URL configured for ' + provider.name + '.');
+            noUrl.userFacing = true;
+            throw noUrl;
         }
         if (!apiKey) {
-            var noKeyErr = new Error('No API key set for ' + this.getLabel(id) + '.');
-            noKeyErr.userFacing = true;
-            throw noKeyErr;
+            var noKey = new Error('No API key set for ' + provider.name + '.');
+            noKey.userFacing = true;
+            throw noKey;
         }
 
+        return provider.kind === 'anthropic'
+            ? this._anthropicCall(provider, apiKey, modelId, messages, opts)
+            : this._openaiCall(provider, apiKey, modelId, messages, opts);
+    },
+
+    /** OpenAI-compatible: OpenRouter, OpenAI, Google, audn.ai, custom. */
+    _openaiCall: async function(provider, apiKey, modelId, messages, opts) {
         var headers = {
             'Authorization': 'Bearer ' + apiKey,
             'Content-Type': 'application/json'
         };
-        if (id === 'openrouter') {
+        if (provider.id === 'openrouter') {
             headers['HTTP-Referer'] = (typeof window !== 'undefined' && window.location.href) || 'https://p4rs3lt0ngv3.app';
             headers['X-Title'] = 'P4RS3LT0NGV3';
         }
 
         var body = {
-            model: opts.model,
+            model: modelId,
             messages: messages,
-            temperature: opts.temperature != null ? opts.temperature : 0.2,
             max_tokens: opts.maxTokens || 4096
         };
-        if (opts.responseFormat) {
-            body.response_format = opts.responseFormat;
-        }
+        if (opts.temperature != null) body.temperature = opts.temperature;
+        if (opts.responseFormat) body.response_format = opts.responseFormat;
 
-        var resp = await fetch(url, {
+        var resp = await fetch(provider.baseUrl.replace(/\/+$/, '') + '/chat/completions', {
             method: 'POST',
             headers: headers,
             body: JSON.stringify(body)
         });
 
-        var data = null;
-        try {
-            data = await resp.json();
-        } catch (parseErr) {
-            var parseFailErr = new Error('Unexpected response from ' + this.getLabel(id) + ' (HTTP ' + resp.status + ')');
-            parseFailErr.status = resp.status;
-            throw parseFailErr;
+        var data = await this._parseJson(resp, provider.name);
+        this._throwIfError(resp, data, provider.name);
+        return data;
+    },
+
+    /**
+     * Anthropic Messages API. Differs from OpenAI in four ways that matter:
+     *   - auth is x-api-key (not Bearer) + a required anthropic-version
+     *   - browser calls need anthropic-dangerous-direct-browser-access for CORS
+     *   - `system` is a top-level string, not a message with role "system"
+     *   - current models (Opus 5 / Sonnet 5 / Opus 4.7+) reject `temperature`
+     *     with a 400, so it is never sent
+     * The response is normalized to OpenAI's `choices[0].message.content`
+     * shape so every caller can read one format.
+     */
+    _anthropicCall: async function(provider, apiKey, modelId, messages, opts) {
+        // Hoist system turns out of the messages array
+        var system = '';
+        var convo = [];
+        (messages || []).forEach(function(m) {
+            if (m.role === 'system') {
+                system += (system ? '\n\n' : '') + m.content;
+            } else {
+                convo.push({ role: m.role, content: m.content });
+            }
+        });
+
+        var body = {
+            model: modelId,
+            messages: convo,
+            max_tokens: opts.maxTokens || 4096 // required by Anthropic
+        };
+        if (system) body.system = system;
+
+        var resp = await fetch(provider.baseUrl.replace(/\/+$/, '') + '/messages', {
+            method: 'POST',
+            headers: {
+                'x-api-key': apiKey,
+                'anthropic-version': '2023-06-01',
+                'anthropic-dangerous-direct-browser-access': 'true',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
+
+        var data = await this._parseJson(resp, provider.name);
+        this._throwIfError(resp, data, provider.name);
+
+        if (data.stop_reason === 'refusal') {
+            var refusal = new Error('Claude declined this request' +
+                (data.stop_details && data.stop_details.category
+                    ? ' (' + data.stop_details.category + ')' : '') + '.');
+            refusal.status = 200;
+            refusal.data = data;
+            throw refusal;
         }
 
-        if (!resp.ok || (data && data.error)) {
-            var msg = (data && data.error)
-                ? ((typeof data.error === 'string') ? data.error : (data.error.message || 'API error'))
-                : ('HTTP ' + resp.status);
-            var err = new Error(msg);
+        // Normalize content[] blocks → OpenAI-shaped choices[]
+        var text = (data.content || [])
+            .filter(function(b) { return b.type === 'text'; })
+            .map(function(b) { return b.text; })
+            .join('');
+
+        return {
+            choices: [{ message: { role: 'assistant', content: text } }],
+            usage: data.usage,
+            _raw: data
+        };
+    },
+
+    _parseJson: async function(resp, label) {
+        try {
+            return await resp.json();
+        } catch (e) {
+            var err = new Error('Unexpected response from ' + label + ' (HTTP ' + resp.status + ')');
             err.status = resp.status;
-            err.data = data;
             throw err;
         }
+    },
 
-        return data;
+    _throwIfError: function(resp, data, label) {
+        if (resp.ok && !(data && data.error)) return;
+        var msg = (data && data.error)
+            ? ((typeof data.error === 'string') ? data.error : (data.error.message || 'API error'))
+            : ('HTTP ' + resp.status);
+        var err = new Error(msg);
+        err.status = resp.status;
+        err.data = data;
+        err.provider = label;
+        throw err;
     }
 };

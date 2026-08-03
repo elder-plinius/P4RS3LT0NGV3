@@ -30,8 +30,8 @@ class SpellingAlphabetTool extends Tool {
     getVueMethods() {
         return {
             saGetApiKey: function() {
-                var providerId = window.AIProvider.getSelectedId();
-                var key = window.AIProvider.getApiKey(providerId);
+                var providerId = window.AIProvider.parseModelId(this.saModel).providerId;
+                var key = window.AIProvider.keyForModel(this.saModel);
                 if (!key && providerId === 'openrouter' && this.openrouterApiKey) {
                     key = this.openrouterApiKey;
                     window.AIProvider.setApiKey(providerId, key);
@@ -117,8 +117,8 @@ class SpellingAlphabetTool extends Tool {
                     return;
                 }
 
-                var providerId = window.AIProvider.getSelectedId();
-                var providerLabel = window.AIProvider.getLabel(providerId);
+                var providerId = window.AIProvider.parseModelId(this.saModel).providerId;
+                var providerLabel = window.AIProvider.labelForModel(this.saModel);
                 var apiKey = this.saGetApiKey();
                 if (!apiKey) {
                     this.saError = 'No ' + providerLabel + ' API key. Add one in Advanced Settings, or fill in letters manually below.';

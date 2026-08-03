@@ -196,9 +196,9 @@ class DecodeTool extends Tool {
                 }
             },
             decoderTranslateToEnglish: async function() {
-                var providerId = window.AIProvider.getSelectedId();
-                var providerLabel = window.AIProvider.getLabel(providerId);
-                var apiKey = window.AIProvider.getApiKey(providerId);
+                var providerId = window.AIProvider.parseModelId((localStorage.getItem('translate-model') || 'google/gemma-3-27b-it')).providerId;
+                var providerLabel = window.AIProvider.labelForModel((localStorage.getItem('translate-model') || 'google/gemma-3-27b-it'));
+                var apiKey = window.AIProvider.keyForModel((localStorage.getItem('translate-model') || 'google/gemma-3-27b-it'));
                 // Fallback: check Vue data property if localStorage is empty
                 if (!apiKey && providerId === 'openrouter' && this.openrouterApiKey) {
                     apiKey = this.openrouterApiKey.trim();

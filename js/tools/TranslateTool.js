@@ -74,8 +74,8 @@ class TranslateTool extends Tool {
         var self = this;
         return {
             translateGetApiKey: function() {
-                var providerId = window.AIProvider.getSelectedId();
-                var key = window.AIProvider.getApiKey(providerId);
+                var providerId = window.AIProvider.parseModelId(this.translateModel).providerId;
+                var key = window.AIProvider.keyForModel(this.translateModel);
                 // Fallback: if nothing in localStorage, check the Vue data property
                 // (covers case where user typed key but forgot to click Save)
                 if (!key && providerId === 'openrouter' && this.openrouterApiKey) {
@@ -98,8 +98,8 @@ class TranslateTool extends Tool {
                     'Please translate the following English text into ' + langName + ':\n\n' + text;
             },
             translateTo: async function(langName) {
-                var providerId = window.AIProvider.getSelectedId();
-                var providerLabel = window.AIProvider.getLabel(providerId);
+                var providerId = window.AIProvider.parseModelId(this.translateModel).providerId;
+                var providerLabel = window.AIProvider.labelForModel(this.translateModel);
                 var apiKey = this.translateGetApiKey();
                 if (!apiKey) {
                     this.translateError = 'No API key. Set your ' + providerLabel + ' key in Advanced Settings in the top right.';

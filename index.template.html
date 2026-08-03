@@ -341,60 +341,60 @@
                             </div>
                             <hr class="settings-divider" />
                             <div class="settings-section api-key-section">
-                                <h4><i class="fas fa-key"></i> AI Provider</h4>
-                                <small class="settings-hint">Required for Translation, PromptCraft, Spelling, Anti-Classifier, and AI Decode. Any OpenAI-compatible endpoint works. Keys are stored locally in your browser only.</small>
-                                <label class="settings-theme-field">
-                                    Active provider
-                                    <select
-                                        class="settings-theme-select"
-                                        :value="aiProviderId"
-                                        @change="selectAiProvider($event.target.value)"
-                                        aria-label="Select AI provider"
-                                    >
-                                        <option v-for="p in aiAllProviders()" :key="p.id" :value="p.id">{{ p.name }}</option>
-                                    </select>
-                                </label>
-                                <small class="settings-hint" v-if="aiCurrentProvider().baseUrl">{{ aiCurrentProvider().baseUrl }}/chat/completions</small>
-                                <div class="api-key-input-row">
-                                    <input
-                                        :type="showApiKey ? 'text' : 'password'"
-                                        v-model="aiProviderKeyDraft"
-                                        :placeholder="aiCurrentProvider().keyPlaceholder || 'API key'"
-                                        class="api-key-input"
-                                        autocomplete="off"
-                                        spellcheck="false"
-                                    />
-                                    <button class="api-key-toggle" @click="showApiKey = !showApiKey" :title="showApiKey ? 'Hide key' : 'Show key'">
-                                        <i :class="showApiKey ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
-                                    </button>
-                                </div>
-                                <div class="api-key-actions">
-                                    <button class="api-key-save" @click="saveAiProviderKey" :disabled="!aiProviderKeyDraft">
-                                        <i class="fas fa-save"></i> Save Key
-                                    </button>
-                                    <button class="api-key-clear" @click="clearAiProviderKey" v-if="aiProviderKeyDraft">
-                                        <i class="fas fa-trash"></i> Clear
-                                    </button>
-                                    <button
-                                        class="api-key-clear"
-                                        v-if="aiCurrentProvider() && !aiCurrentProvider().builtin"
-                                        @click="removeAiCustomProvider(aiProviderId)"
-                                    >
-                                        <i class="fas fa-times"></i> Remove Provider
-                                    </button>
-                                    <small v-if="apiKeySaved" class="apply-status">Saved</small>
+                                <h4><i class="fas fa-key"></i> AI Providers</h4>
+                                <small class="settings-hint">Save a key for each provider you use — every configured provider's models appear together in the tool dropdowns, so there's no active provider to switch. Keys are stored locally in your browser only.</small>
+
+                                <div v-for="p in aiProviders" :key="p.id" class="ai-provider-row">
+                                    <div class="ai-provider-head">
+                                        <strong>{{ p.name }}</strong>
+                                        <small v-if="aiProviderConfigured(p.id)" class="apply-status">configured</small>
+                                        <small class="settings-hint" v-if="p.kind === 'anthropic'">Messages API</small>
+                                    </div>
+                                    <small class="settings-hint">{{ p.baseUrl }}</small>
+                                    <div class="api-key-input-row">
+                                        <input
+                                            :type="aiRevealedKeys[p.id] ? 'text' : 'password'"
+                                            v-model="aiKeyDrafts[p.id]"
+                                            :placeholder="p.keyPlaceholder || 'API key'"
+                                            class="api-key-input"
+                                            autocomplete="off"
+                                            spellcheck="false"
+                                        />
+                                        <button class="api-key-toggle" @click="toggleAiKeyVisible(p.id)" :title="aiRevealedKeys[p.id] ? 'Hide key' : 'Show key'">
+                                            <i :class="aiRevealedKeys[p.id] ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+                                        </button>
+                                    </div>
+                                    <div class="api-key-actions">
+                                        <button class="api-key-save" @click="saveAiProviderKey(p.id)" :disabled="!aiKeyDrafts[p.id]">
+                                            <i class="fas fa-save"></i> Save
+                                        </button>
+                                        <button class="api-key-clear" @click="clearAiProviderKey(p.id)" v-if="aiProviderConfigured(p.id)">
+                                            <i class="fas fa-trash"></i> Clear
+                                        </button>
+                                        <button class="api-key-clear" v-if="!p.builtin" @click="removeAiCustomProvider(p.id)">
+                                            <i class="fas fa-times"></i> Remove
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div class="api-key-actions">
                                     <button class="openrouter-models-action" @click="aiProviderFormOpen = !aiProviderFormOpen">
                                         <i class="fas" :class="aiProviderFormOpen ? 'fa-minus' : 'fa-plus'"></i>
-                                        Add OpenAI-compatible provider
+                                        Add custom provider
                                     </button>
+                                    <small v-if="apiKeySaved" class="apply-status">Saved</small>
                                 </div>
                                 <div v-if="aiProviderFormOpen" class="options-grid">
                                     <label>
                                         Name
                                         <input v-model="aiNewProviderName" class="api-key-input" placeholder="My provider" autocomplete="off" spellcheck="false" />
+                                    </label>
+                                    <label>
+                                        API format
+                                        <select v-model="aiNewProviderKind" class="settings-theme-select">
+                                            <option value="openai">OpenAI-compatible</option>
+                                            <option value="anthropic">Anthropic Messages</option>
+                                        </select>
                                     </label>
                                     <label>
                                         Base URL
