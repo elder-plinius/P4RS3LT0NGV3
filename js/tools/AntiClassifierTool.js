@@ -32,12 +32,11 @@ class AntiClassifierTool extends Tool {
     getVueMethods() {
         return {
             acGetApiKey: function() {
-                var key = localStorage.getItem('openrouter-api-key') ||
-                    localStorage.getItem('plinyos-api-key') ||
-                    localStorage.getItem('openrouter_api_key') || '';
-                if (!key && this.openrouterApiKey) {
+                var providerId = window.AIProvider.getSelectedId();
+                var key = window.AIProvider.getApiKey(providerId);
+                if (!key && providerId === 'openrouter' && this.openrouterApiKey) {
                     key = this.openrouterApiKey;
-                    localStorage.setItem('openrouter-api-key', key.trim());
+                    window.AIProvider.setApiKey(providerId, key);
                 }
                 return (key || '').trim();
             },
@@ -54,9 +53,11 @@ class AntiClassifierTool extends Tool {
                 this.acLexemeAnalysis = window.LexemeAnalysis.analyze(this.acInput);
             },
             acRun: async function() {
+                const providerId = window.AIProvider.getSelectedId();
+                const providerLabel = window.AIProvider.getLabel(providerId);
                 const apiKey = this.acGetApiKey();
                 if (!apiKey) {
-                    this.acError = 'No API key found. Set your OpenRouter key in Advanced Settings first.';
+                    this.acError = 'No API key found. Set your ' + providerLabel + ' key in Advanced Settings first.';
                     return;
                 }
                 if (!this.acInput.trim()) {
@@ -80,45 +81,32 @@ class AntiClassifierTool extends Tool {
                 localStorage.setItem('ac-temperature', String(temperature));
 
                 try {
-                    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': 'Bearer ' + apiKey,
-                            'Content-Type': 'application/json',
-                            'HTTP-Referer': window.location.href || 'https://p4rs3lt0ngv3.app',
-                            'X-Title': 'P4RS3LT0NGV3 Anti-Classifier'
-                        },
-                        body: JSON.stringify({
-                            model: this.acModel,
-                            messages: [
-                                { role: 'system', content: systemPrompt },
-                                { role: 'user', content: this.acInput }
-                            ],
-                            temperature: temperature,
-                            max_tokens: Math.max(100, Math.min(32000, Number(this.acMaxTokens) || 2000))
-                        })
+                    const data = await window.AIProvider.chatCompletion([
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: this.acInput }
+                    ], {
+                        provider: providerId,
+                        apiKey: apiKey,
+                        model: this.acModel,
+                        temperature: temperature,
+                        maxTokens: Math.max(100, Math.min(32000, Number(this.acMaxTokens) || 2000))
                     });
-                    const data = await res.json();
-                    if (res.status === 401) {
-                        throw new Error('Invalid API key. Check your OpenRouter key in Advanced Settings.');
-                    }
-                    if (res.status === 402) {
-                        throw new Error('Insufficient credits on your OpenRouter account.');
-                    }
-                    if (res.status === 403) {
-                        throw new Error('Access denied. Your key may lack permissions for this model.');
-                    }
-                    if (data.error) {
-                        const msg = typeof data.error === 'string' ? data.error : (data.error.message || 'API error');
-                        throw new Error(msg);
-                    }
+
                     if (data.choices && data.choices[0] && data.choices[0].message) {
                         this.acOutput = (data.choices[0].message.content || '').trim();
                     } else {
                         throw new Error('Empty response from model.');
                     }
                 } catch (e) {
-                    this.acError = e.message || 'Request failed.';
+                    if (e.status === 401) {
+                        this.acError = 'Invalid API key. Check your ' + providerLabel + ' key in Advanced Settings.';
+                    } else if (e.status === 402) {
+                        this.acError = 'Insufficient credits on your ' + providerLabel + ' account.';
+                    } else if (e.status === 403) {
+                        this.acError = 'Access denied. Your key may lack permissions for this model.';
+                    } else {
+                        this.acError = e.message || 'Request failed.';
+                    }
                 } finally {
                     this.acLoading = false;
                 }

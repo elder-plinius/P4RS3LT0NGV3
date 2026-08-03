@@ -30,12 +30,11 @@ class SpellingAlphabetTool extends Tool {
     getVueMethods() {
         return {
             saGetApiKey: function() {
-                var key = localStorage.getItem('openrouter-api-key') ||
-                    localStorage.getItem('plinyos-api-key') ||
-                    localStorage.getItem('openrouter_api_key') || '';
-                if (!key && this.openrouterApiKey) {
+                var providerId = window.AIProvider.getSelectedId();
+                var key = window.AIProvider.getApiKey(providerId);
+                if (!key && providerId === 'openrouter' && this.openrouterApiKey) {
                     key = this.openrouterApiKey;
-                    localStorage.setItem('openrouter-api-key', key.trim());
+                    window.AIProvider.setApiKey(providerId, key);
                 }
                 return key.trim();
             },
@@ -118,9 +117,11 @@ class SpellingAlphabetTool extends Tool {
                     return;
                 }
 
+                var providerId = window.AIProvider.getSelectedId();
+                var providerLabel = window.AIProvider.getLabel(providerId);
                 var apiKey = this.saGetApiKey();
                 if (!apiKey) {
-                    this.saError = 'No OpenRouter API key. Add one in Advanced Settings, or fill in letters manually below.';
+                    this.saError = 'No ' + providerLabel + ' API key. Add one in Advanced Settings, or fill in letters manually below.';
                     return;
                 }
 
@@ -129,47 +130,30 @@ class SpellingAlphabetTool extends Tool {
 
                 var self = this;
                 var requestBody = this.saBuildGenerationRequest(category);
+                var callOpts = {
+                    provider: providerId,
+                    apiKey: apiKey,
+                    model: requestBody.model,
+                    temperature: requestBody.temperature,
+                    maxTokens: requestBody.max_tokens,
+                    responseFormat: requestBody.response_format
+                };
 
-                fetch('https://openrouter.ai/api/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': 'Bearer ' + apiKey,
-                        'Content-Type': 'application/json',
-                        'HTTP-Referer': window.location.origin,
-                        'X-Title': 'P4RS3LT0NGV3 Spelling Alphabet'
-                    },
-                    body: JSON.stringify(requestBody)
-                })
-                    .then(function(response) {
-                        if (response.status === 401) {
-                            throw new Error('Invalid API key. Check your OpenRouter key in Advanced Settings.');
+                window.AIProvider.chatCompletion(requestBody.messages, callOpts)
+                    .catch(function(err) {
+                        // Some models reject json_object mode — retry once without it
+                        if (err.status === 400 && callOpts.responseFormat) {
+                            var retryOpts = Object.assign({}, callOpts);
+                            delete retryOpts.responseFormat;
+                            return window.AIProvider.chatCompletion(requestBody.messages, retryOpts);
                         }
-                        if (response.status === 402) {
-                            throw new Error('Insufficient credits on your OpenRouter account.');
+                        if (err.status === 401) {
+                            throw new Error('Invalid API key. Check your ' + providerLabel + ' key in Advanced Settings.');
                         }
-                        if (response.status === 400 && requestBody.response_format) {
-                            delete requestBody.response_format;
-                            return fetch('https://openrouter.ai/api/v1/chat/completions', {
-                                method: 'POST',
-                                headers: {
-                                    'Authorization': 'Bearer ' + apiKey,
-                                    'Content-Type': 'application/json',
-                                    'HTTP-Referer': window.location.origin,
-                                    'X-Title': 'P4RS3LT0NGV3 Spelling Alphabet'
-                                },
-                                body: JSON.stringify(requestBody)
-                            });
+                        if (err.status === 402) {
+                            throw new Error('Insufficient credits on your ' + providerLabel + ' account.');
                         }
-                        if (!response.ok) {
-                            throw new Error('OpenRouter request failed (HTTP ' + response.status + ').');
-                        }
-                        return response;
-                    })
-                    .then(function(response) {
-                        if (!response.ok) {
-                            throw new Error('OpenRouter request failed (HTTP ' + response.status + ').');
-                        }
-                        return response.json();
+                        throw err;
                     })
                     .then(function(data) {
                         var message = data &&

@@ -40,6 +40,14 @@ const baseData = {
     openrouterApiKey: localStorage.getItem('openrouter-api-key') || '',
     showApiKey: false,
     apiKeySaved: false,
+    aiProviderId: window.AIProvider ? window.AIProvider.getSelectedId() : 'openrouter',
+    aiCustomProviders: window.AIProvider ? window.AIProvider.getCustomProviders() : [],
+    aiProviderKeyDraft: '',
+    aiNewProviderName: '',
+    aiNewProviderBaseUrl: '',
+    aiNewProviderKey: '',
+    aiNewProviderModels: '',
+    aiProviderFormOpen: false,
     openRouterModels: (window.OpenRouterModels && window.OpenRouterModels.getStaticFallback)
         ? window.OpenRouterModels.getStaticFallback()
         : [],
@@ -566,6 +574,16 @@ window.app = new Vue({
 
         rebuildOpenRouterDropdown() {
             if (!window.OpenRouterModels) return;
+            // Non-OpenRouter providers expose a fixed model list instead of the
+            // fetched OpenRouter catalog; show it verbatim (no enable/disable
+            // curation, which is an OpenRouter-catalog concept).
+            if (this.aiProviderId !== 'openrouter') {
+                var preset = window.AIProvider.getPreset(this.aiProviderId);
+                this.openRouterModels = (preset.models || []).map(function(id) {
+                    return { id: id, name: id, provider: preset.name };
+                });
+                return;
+            }
             var pinned = window.OpenRouterModels.getPinnedModelIds(this);
             this.openRouterModels = window.OpenRouterModels.filterForDropdown(
                 this.openRouterModelsCatalog,
@@ -636,6 +654,14 @@ window.app = new Vue({
         refreshOpenRouterModels: async function(force) {
             if (!window.OpenRouterModels) return;
             if (this.openRouterModelsLoading) return;
+            // Only OpenRouter has a fetchable catalog; others are static lists.
+            if (this.aiProviderId !== 'openrouter') {
+                this.openRouterModelsError = '';
+                this.openRouterModelsKeyInfo = null;
+                this.rebuildOpenRouterDropdown();
+                this.syncOpenRouterModelSelections();
+                return;
+            }
 
             this.openRouterModelsLoading = true;
             this.openRouterModelsError = '';
@@ -670,27 +696,80 @@ window.app = new Vue({
             }
         },
         
-        saveApiKey() {
-            var trimmed = (this.openrouterApiKey || '').trim();
-            if (trimmed) {
-                this.openrouterApiKey = trimmed;
-                localStorage.setItem('openrouter-api-key', trimmed);
-                this.apiKeySaved = true;
-                this.showNotification('API key saved', 'success');
-                setTimeout(() => { this.apiKeySaved = false; }, 2000);
-                this.refreshOpenRouterModels(true);
-            }
+        aiAllProviders() {
+            return window.AIProvider.BUILTIN.concat(this.aiCustomProviders);
         },
 
-        clearApiKey() {
-            this.openrouterApiKey = '';
-            this.showApiKey = false;
-            localStorage.removeItem('openrouter-api-key');
-            localStorage.removeItem('openrouter_api_key');
-            localStorage.removeItem('plinyos-api-key');
-            this.showNotification('API key cleared', 'success');
-            this.openRouterModelsKeyInfo = null;
+        selectAiProvider(id) {
+            this.aiProviderId = id;
+            window.AIProvider.setSelectedId(id);
+            this.aiProviderKeyDraft = window.AIProvider.getApiKey(id);
+            this.openRouterModelsError = '';
+            this.refreshOpenRouterModels(false);
+        },
+
+        aiCurrentProvider() {
+            return window.AIProvider.getPreset(this.aiProviderId);
+        },
+
+        saveAiProviderKey() {
+            var key = (this.aiProviderKeyDraft || '').trim();
+            if (!key) return;
+            window.AIProvider.setApiKey(this.aiProviderId, key);
+            if (this.aiProviderId === 'openrouter') {
+                this.openrouterApiKey = key;
+            }
+            this.aiCustomProviders = window.AIProvider.getCustomProviders();
+            this.apiKeySaved = true;
+            this.showNotification('API key saved', 'success');
+            setTimeout(() => { this.apiKeySaved = false; }, 2000);
             this.refreshOpenRouterModels(true);
+        },
+
+        clearAiProviderKey() {
+            window.AIProvider.clearApiKey(this.aiProviderId);
+            this.aiProviderKeyDraft = '';
+            if (this.aiProviderId === 'openrouter') {
+                this.openrouterApiKey = '';
+                this.openRouterModelsKeyInfo = null;
+            }
+            this.aiCustomProviders = window.AIProvider.getCustomProviders();
+            this.showNotification('API key cleared', 'success');
+            this.refreshOpenRouterModels(true);
+        },
+
+        addAiCustomProvider() {
+            var name = (this.aiNewProviderName || '').trim();
+            var baseUrl = (this.aiNewProviderBaseUrl || '').trim();
+            if (!name || !baseUrl) {
+                this.showNotification('Name and base URL are required', 'error');
+                return;
+            }
+            var newId = window.AIProvider.addCustomProvider({
+                name: name,
+                baseUrl: baseUrl,
+                apiKey: this.aiNewProviderKey,
+                models: this.aiNewProviderModels
+            });
+            this.aiCustomProviders = window.AIProvider.getCustomProviders();
+            this.aiNewProviderName = '';
+            this.aiNewProviderBaseUrl = '';
+            this.aiNewProviderKey = '';
+            this.aiNewProviderModels = '';
+            this.aiProviderFormOpen = false;
+            this.showNotification('Provider added', 'success');
+            this.selectAiProvider(newId);
+        },
+
+        removeAiCustomProvider(id) {
+            var provider = window.AIProvider.getPreset(id);
+            if (!window.confirm('Remove provider "' + provider.name + '"?')) return;
+            window.AIProvider.removeCustomProvider(id);
+            this.aiCustomProviders = window.AIProvider.getCustomProviders();
+            if (this.aiProviderId === id) {
+                this.selectAiProvider('openrouter');
+            }
+            this.showNotification('Provider removed', 'success');
         },
 
         setupPasteHandlers() {
@@ -732,6 +811,7 @@ window.app = new Vue({
             this.registeredTools = window.toolRegistry.getAll();
         }
 
+        this.aiProviderKeyDraft = window.AIProvider.getApiKey(this.aiProviderId);
         this.refreshOpenRouterModels(false);
 
         var initialRoute = window.TabRouting && window.TabRouting.parse();

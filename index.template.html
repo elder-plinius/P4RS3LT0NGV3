@@ -341,13 +341,25 @@
                             </div>
                             <hr class="settings-divider" />
                             <div class="settings-section api-key-section">
-                                <h4><i class="fas fa-key"></i> OpenRouter API Key</h4>
-                                <small class="settings-hint">Required for Translation, PromptCraft, and Anti-Classifier. Stored locally in your browser only.</small>
+                                <h4><i class="fas fa-key"></i> AI Provider</h4>
+                                <small class="settings-hint">Required for Translation, PromptCraft, Spelling, Anti-Classifier, and AI Decode. Any OpenAI-compatible endpoint works. Keys are stored locally in your browser only.</small>
+                                <label class="settings-theme-field">
+                                    Active provider
+                                    <select
+                                        class="settings-theme-select"
+                                        :value="aiProviderId"
+                                        @change="selectAiProvider($event.target.value)"
+                                        aria-label="Select AI provider"
+                                    >
+                                        <option v-for="p in aiAllProviders()" :key="p.id" :value="p.id">{{ p.name }}</option>
+                                    </select>
+                                </label>
+                                <small class="settings-hint" v-if="aiCurrentProvider().baseUrl">{{ aiCurrentProvider().baseUrl }}/chat/completions</small>
                                 <div class="api-key-input-row">
                                     <input
                                         :type="showApiKey ? 'text' : 'password'"
-                                        v-model="openrouterApiKey"
-                                        placeholder="sk-or-..."
+                                        v-model="aiProviderKeyDraft"
+                                        :placeholder="aiCurrentProvider().keyPlaceholder || 'API key'"
                                         class="api-key-input"
                                         autocomplete="off"
                                         spellcheck="false"
@@ -357,13 +369,50 @@
                                     </button>
                                 </div>
                                 <div class="api-key-actions">
-                                    <button class="api-key-save" @click="saveApiKey" :disabled="!openrouterApiKey">
+                                    <button class="api-key-save" @click="saveAiProviderKey" :disabled="!aiProviderKeyDraft">
                                         <i class="fas fa-save"></i> Save Key
                                     </button>
-                                    <button class="api-key-clear" @click="clearApiKey" v-if="openrouterApiKey">
+                                    <button class="api-key-clear" @click="clearAiProviderKey" v-if="aiProviderKeyDraft">
                                         <i class="fas fa-trash"></i> Clear
                                     </button>
+                                    <button
+                                        class="api-key-clear"
+                                        v-if="aiCurrentProvider() && !aiCurrentProvider().builtin"
+                                        @click="removeAiCustomProvider(aiProviderId)"
+                                    >
+                                        <i class="fas fa-times"></i> Remove Provider
+                                    </button>
                                     <small v-if="apiKeySaved" class="apply-status">Saved</small>
+                                </div>
+
+                                <div class="api-key-actions">
+                                    <button class="openrouter-models-action" @click="aiProviderFormOpen = !aiProviderFormOpen">
+                                        <i class="fas" :class="aiProviderFormOpen ? 'fa-minus' : 'fa-plus'"></i>
+                                        Add OpenAI-compatible provider
+                                    </button>
+                                </div>
+                                <div v-if="aiProviderFormOpen" class="options-grid">
+                                    <label>
+                                        Name
+                                        <input v-model="aiNewProviderName" class="api-key-input" placeholder="My provider" autocomplete="off" spellcheck="false" />
+                                    </label>
+                                    <label>
+                                        Base URL
+                                        <input v-model="aiNewProviderBaseUrl" class="api-key-input" placeholder="https://host/v1" autocomplete="off" spellcheck="false" />
+                                    </label>
+                                    <label>
+                                        API key
+                                        <input v-model="aiNewProviderKey" type="password" class="api-key-input" placeholder="API key" autocomplete="off" spellcheck="false" />
+                                    </label>
+                                    <label>
+                                        Models (comma-separated)
+                                        <input v-model="aiNewProviderModels" class="api-key-input" placeholder="model-a, model-b" autocomplete="off" spellcheck="false" />
+                                    </label>
+                                    <div class="api-key-actions">
+                                        <button class="api-key-save" @click="addAiCustomProvider" :disabled="!aiNewProviderName || !aiNewProviderBaseUrl">
+                                            <i class="fas fa-save"></i> Add Provider
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             <hr class="settings-divider" />
@@ -506,6 +555,7 @@
     <script src="js/utils/clipboard.js"></script>
     <script src="js/utils/theme.js"></script>
     <script src="js/utils/openrouterModels.js"></script>
+    <script src="js/utils/aiProvider.js"></script>
     <script src="js/utils/routing.js"></script>
     <script src="js/utils/emoji.js"></script>
     <script src="js/utils/ean13.js"></script>
