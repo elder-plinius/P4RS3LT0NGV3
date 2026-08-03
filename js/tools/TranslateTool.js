@@ -146,8 +146,8 @@ class TranslateTool extends Tool {
                         maxTokens: 4096
                     });
 
-                    if (data.choices && data.choices[0]) {
-                        var translated = data.choices[0].message.content.trim();
+                    if (data.choices && data.choices[0] && data.choices[0].message) {
+                        var translated = (data.choices[0].message.content || '').trim();
                         this.transformOutput = translated;
                         this.activeTransform = { name: langName + ' (' + langCode + ')', category: 'translate' };
                         this.copyToClipboard(translated);

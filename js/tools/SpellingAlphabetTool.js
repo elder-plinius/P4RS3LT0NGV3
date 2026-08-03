@@ -1,5 +1,5 @@
 /**
- * Spelling Alphabet Tool — create custom ICAO-style alphabets (OpenRouter or manual).
+ * Spelling Alphabet Tool — create custom ICAO-style alphabets (AI-assisted or manual).
  */
 class SpellingAlphabetTool extends Tool {
     constructor() {
@@ -39,7 +39,7 @@ class SpellingAlphabetTool extends Tool {
                 return key.trim();
             },
             saHasApiKey: function() {
-                return !!this.saGetApiKey();
+                return window.AIProvider.getConfiguredProviders().length > 0;
             },
             saLoadAlphabets: function() {
                 this.saAlphabets = CustomSpellingAlphabets.loadAll();
@@ -94,6 +94,7 @@ class SpellingAlphabetTool extends Tool {
             },
             saBuildGenerationRequest: function(category) {
                 var prompts = SpellingAlphabetTransform.buildAlphabetPrompts(category);
+                var modelId = window.AIProvider.parseModelId(this.saModel).modelId;
                 var body = {
                     model: this.saModel,
                     temperature: 0.2,
@@ -104,7 +105,7 @@ class SpellingAlphabetTool extends Tool {
                     ]
                 };
 
-                if (this.saModel !== 'openrouter/free') {
+                if (modelId !== 'openrouter/free') {
                     body.response_format = { type: 'json_object' };
                 }
 

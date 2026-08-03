@@ -94,7 +94,9 @@ Vue.component('openrouter-model-select', {
             return this.$root.openRouterModelsKeyInfo;
         },
         hasApiKey: function() {
-            return this.$root.getOpenRouterApiKey ? !!this.$root.getOpenRouterApiKey() : false;
+            return window.AIProvider && window.AIProvider.getConfiguredProviders
+                ? window.AIProvider.getConfiguredProviders().length > 0
+                : false;
         },
         routerHint: function() {
             if (!this.value || !window.OpenRouterModels || !window.OpenRouterModels.getRouterHint) {
@@ -137,7 +139,7 @@ Vue.component('openrouter-model-select', {
                     'class="openrouter-model-refresh" ' +
                     '@click="refresh" ' +
                     ':disabled="loading" ' +
-                    'title="Refresh model list from OpenRouter"' +
+                    'title="Refresh model list"' +
                     'aria-label="Refresh model list"' +
                 '>' +
                     '<i class="fas" :class="loading ? \'fa-spinner fa-spin\' : \'fa-sync-alt\'"></i>' +
@@ -145,7 +147,7 @@ Vue.component('openrouter-model-select', {
             '</div>' +
             '<small v-if="error" class="openrouter-model-hint openrouter-model-hint-error">{{ error }}</small>' +
             '<small v-else-if="routerHint" class="openrouter-model-hint openrouter-model-hint-router">{{ routerHint }}</small>' +
-            '<small v-else-if="!hasApiKey" class="openrouter-model-hint">Add an OpenRouter key in Settings to load models for your account.</small>' +
+            '<small v-else-if="!hasApiKey" class="openrouter-model-hint">Add an API key in Settings → AI Providers to load models.</small>' +
             '<small v-else-if="keyInfo && keyInfo.is_free_tier" class="openrouter-model-hint">Free tier account — models marked · free need no credits.</small>' +
             '<small v-else class="openrouter-model-hint">Curate visible models in Settings → AI Models.</small>' +
         '</label>'
@@ -692,26 +694,25 @@ window.app = new Vue({
             if (!window.OpenRouterModels) return;
             if (this.openRouterModelsLoading) return;
 
-            // Other providers' catalogs first, so the dropdown rebuild below
-            // picks them up in the same pass.
-            await this.refreshProviderCatalogs(force);
-
-            // OpenRouter has its own catalog path (curation + key info); skip
-            // it entirely when no OpenRouter key is configured.
-            if (!window.AIProvider.hasApiKey('openrouter')) {
-                this.openRouterModelsError = '';
-                this.openRouterModelsKeyInfo = null;
-                this.rebuildOpenRouterDropdown();
-                this.syncOpenRouterModelSelections();
-                return;
-            }
-
             this.openRouterModelsLoading = true;
             this.openRouterModelsError = '';
 
-            var apiKey = this.getOpenRouterApiKey();
-
             try {
+                // Other providers' catalogs first, so the dropdown rebuild below
+                // picks them up in the same pass.
+                await this.refreshProviderCatalogs(force);
+
+                // OpenRouter has its own catalog path (curation + key info); skip
+                // it entirely when no OpenRouter key is configured.
+                if (!window.AIProvider.hasApiKey('openrouter')) {
+                    this.openRouterModelsError = '';
+                    this.openRouterModelsKeyInfo = null;
+                    this.rebuildOpenRouterDropdown();
+                    this.syncOpenRouterModelSelections();
+                    return;
+                }
+
+                var apiKey = this.getOpenRouterApiKey();
                 var models = await window.OpenRouterModels.fetch(apiKey, { force: !!force });
                 this.openRouterModelsCatalog = models;
                 this.rebuildOpenRouterDropdown();
@@ -752,7 +753,7 @@ window.app = new Vue({
         },
 
         aiProviderConfigured(id) {
-            return !!(this.aiKeyDrafts[id] || '').trim();
+            return !!(window.AIProvider.getApiKey(id) || '').trim();
         },
 
         aiProviderModelCount(id) {
@@ -797,13 +798,17 @@ window.app = new Vue({
                 this.showNotification('Name and base URL are required', 'error');
                 return;
             }
-            window.AIProvider.addCustomProvider({
+            var id = window.AIProvider.addCustomProvider({
                 name: name,
                 baseUrl: baseUrl,
                 kind: this.aiNewProviderKind,
                 apiKey: this.aiNewProviderKey,
                 models: this.aiNewProviderModels
             });
+            if (!id) {
+                this.showNotification('Base URL must be an absolute http(s) URL (e.g. https://api.example.com/v1)', 'error');
+                return;
+            }
             this.aiNewProviderName = '';
             this.aiNewProviderBaseUrl = '';
             this.aiNewProviderKey = '';

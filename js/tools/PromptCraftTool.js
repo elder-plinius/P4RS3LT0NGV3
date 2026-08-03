@@ -1,5 +1,7 @@
 /**
- * PromptCraft Tool - AI-assisted prompt crafting & mutation via OpenRouter
+ * PromptCraft Tool - AI-assisted prompt crafting & mutation
+ *
+ * Uses whichever AI providers are configured in Settings.
  */
 class PromptCraftTool extends Tool {
     constructor() {
@@ -7,7 +9,7 @@ class PromptCraftTool extends Tool {
             id: 'promptcraft',
             name: 'PromptCraft',
             icon: 'fa-wand-magic-sparkles',
-            title: 'AI-assisted prompt crafting & mutation via OpenRouter',
+            title: 'AI-assisted prompt crafting & mutation',
             order: 10
         });
     }
@@ -107,28 +109,31 @@ class PromptCraftTool extends Tool {
                 const count = Math.max(1, Math.min(10, this.pcCount));
 
                 try {
-                    const requests = [];
-                    for (let i = 0; i < count; i++) {
-                        requests.push(
-                            window.AIProvider.chatCompletion([
-                                { role: 'system', content: systemPrompt },
-                                { role: 'user', content: this.pcInput }
-                            ], {
-                                provider: providerId,
-                                apiKey: apiKey,
-                                model: this.pcModel,
-                                temperature: temperature,
-                                maxTokens: 2048
-                            }).catch(function(e) {
-                                if (e.status === 401) throw new Error('Invalid API key. Check your ' + providerLabel + ' key in Advanced Settings.');
-                                if (e.status === 402) throw new Error('Insufficient credits on your ' + providerLabel + ' account.');
-                                if (e.status === 403) throw new Error('Access denied. Your key may lack permissions for this model.');
-                                throw e;
-                            })
-                        );
-                    }
+                    const makeRequest = () => window.AIProvider.chatCompletion([
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: this.pcInput }
+                    ], {
+                        provider: providerId,
+                        apiKey: apiKey,
+                        model: this.pcModel,
+                        temperature: temperature,
+                        maxTokens: 2048
+                    }).catch(function(e) {
+                        if (e.status === 401) throw new Error('Invalid API key. Check your ' + providerLabel + ' key in Advanced Settings.');
+                        if (e.status === 402) throw new Error('Insufficient credits on your ' + providerLabel + ' account.');
+                        if (e.status === 403) throw new Error('Access denied. Your key may lack permissions for this model.');
+                        throw e;
+                    });
 
-                    const results = await Promise.allSettled(requests);
+                    // Run the first request alone so provider/model dialect quirks
+                    // (max_completion_tokens, temperature, …) are learned before
+                    // launching the remaining variants in parallel.
+                    const first = await makeRequest();
+                    const rest = [];
+                    for (let i = 1; i < count; i++) {
+                        rest.push(makeRequest());
+                    }
+                    const results = await Promise.allSettled([Promise.resolve(first)].concat(rest));
                     const outputs = [];
                     for (const result of results) {
                         if (result.status === 'fulfilled' && result.value.choices && result.value.choices[0]) {

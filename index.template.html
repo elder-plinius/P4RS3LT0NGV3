@@ -362,7 +362,12 @@
                                             autocomplete="off"
                                             spellcheck="false"
                                         />
-                                        <button class="api-key-toggle" @click="toggleAiKeyVisible(p.id)" :title="aiRevealedKeys[p.id] ? 'Hide key' : 'Show key'">
+                                        <button
+                                            class="api-key-toggle"
+                                            @click="toggleAiKeyVisible(p.id)"
+                                            :title="aiRevealedKeys[p.id] ? 'Hide key' : 'Show key'"
+                                            :aria-label="aiRevealedKeys[p.id] ? 'Hide API key' : 'Show API key'"
+                                        >
                                             <i :class="aiRevealedKeys[p.id] ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
                                         </button>
                                     </div>

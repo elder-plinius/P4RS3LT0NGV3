@@ -107,18 +107,36 @@ window.AIProvider = {
     },
 
     addCustomProvider: function(def) {
+        var baseUrl = this.normalizeBaseUrl(def && def.baseUrl);
+        if (!baseUrl) return null;
         var list = this.getCustomProviders();
         var entry = {
             id: this.genId(),
             name: (def.name || '').trim() || 'Custom provider',
             kind: def.kind === 'anthropic' ? 'anthropic' : 'openai',
-            baseUrl: (def.baseUrl || '').trim().replace(/\/+$/, ''),
+            baseUrl: baseUrl,
             apiKey: (def.apiKey || '').trim(),
             models: this.parseModelList(def.models)
         };
         list.push(entry);
         this.saveCustomProviders(list);
         return entry.id;
+    },
+
+    /**
+     * Require an absolute http(s) URL. Rejects scheme-less values like "host/v1".
+     * Returns the trimmed, trailing-slash-stripped URL, or null when invalid.
+     */
+    normalizeBaseUrl: function(raw) {
+        var url = String(raw || '').trim().replace(/\/+$/, '');
+        if (!url) return null;
+        try {
+            var parsed = new URL(url);
+            if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+            return url;
+        } catch (e) {
+            return null;
+        }
     },
 
     updateCustomProvider: function(id, patch) {
@@ -130,7 +148,9 @@ window.AIProvider = {
             found = true;
             var next = Object.assign({}, p, patch);
             if (patch && typeof patch.baseUrl === 'string') {
-                next.baseUrl = patch.baseUrl.trim().replace(/\/+$/, '');
+                var normalized = self.normalizeBaseUrl(patch.baseUrl);
+                if (!normalized) return p;
+                next.baseUrl = normalized;
             }
             if (patch && typeof patch.apiKey === 'string') {
                 next.apiKey = patch.apiKey.trim();
@@ -148,6 +168,10 @@ window.AIProvider = {
         this.saveCustomProviders(this.getCustomProviders().filter(function(p) {
             return p.id !== id;
         }));
+        try {
+            localStorage.removeItem(this.MODEL_CACHE_PREFIX + id);
+        } catch (e) { /* ignore */ }
+        delete this._fetched[id];
     },
 
     // ---- lookup -----------------------------------------------------------
@@ -283,12 +307,27 @@ window.AIProvider = {
     /** Per-session catalogs fetched from provider /models endpoints. */
     _fetched: {},
 
+    /**
+     * Non-reversible fingerprint of an API key for cache invalidation.
+     * Never store the plaintext key alongside cached model catalogs.
+     */
+    fingerprintKey: function(apiKey) {
+        var s = String(apiKey || '');
+        var h = 5381;
+        for (var i = 0; i < s.length; i++) {
+            h = ((h << 5) + h) ^ s.charCodeAt(i);
+        }
+        return (h >>> 0).toString(16) + ':' + s.length;
+    },
+
     loadModelCache: function(providerId, apiKey) {
         try {
             var raw = localStorage.getItem(this.MODEL_CACHE_PREFIX + providerId);
             if (!raw) return null;
             var parsed = JSON.parse(raw);
-            if (parsed.apiKey !== (apiKey || '')) return null;
+            var fingerprint = this.fingerprintKey(apiKey);
+            // Reject legacy plaintext-key caches and mismatched fingerprints.
+            if (!parsed.keyFingerprint || parsed.keyFingerprint !== fingerprint) return null;
             if (Date.now() - parsed.fetchedAt > this.MODEL_CACHE_TTL_MS) return null;
             return Array.isArray(parsed.models) && parsed.models.length ? parsed.models : null;
         } catch (e) {
@@ -299,7 +338,7 @@ window.AIProvider = {
     saveModelCache: function(providerId, apiKey, models) {
         try {
             localStorage.setItem(this.MODEL_CACHE_PREFIX + providerId, JSON.stringify({
-                apiKey: apiKey || '',
+                keyFingerprint: this.fingerprintKey(apiKey),
                 fetchedAt: Date.now(),
                 models: models
             }));
@@ -318,9 +357,10 @@ window.AIProvider = {
     },
 
     /**
-     * Fetch a provider's live model list. Returns [{id, name}], or null if the
-     * provider has no usable endpoint / the call fails — callers fall back to
-     * the provider's declared list, so this never hard-fails the dropdown.
+     * Fetch a provider's live model list. Returns [{id, name}] on success, or
+     * null when the provider has no usable endpoint / empty catalog. Failed
+     * HTTP responses and network errors throw/propagate so callers can surface
+     * them; callers typically fall back to the provider's declared list.
      */
     fetchModels: async function(providerId, options) {
         options = options || {};
@@ -346,7 +386,7 @@ window.AIProvider = {
             }
             : { 'Authorization': 'Bearer ' + apiKey };
 
-        var resp = await fetch(url, { headers: headers });
+        var resp = await this.fetchWithTimeout(url, { headers: headers });
         if (!resp.ok) {
             var err = new Error(provider.name + ' model list failed (HTTP ' + resp.status + ')');
             err.status = resp.status;
@@ -416,6 +456,34 @@ window.AIProvider = {
 
     // ---- requests ---------------------------------------------------------
 
+    FETCH_TIMEOUT_MS: 45000,
+
+    /**
+     * fetch() with an AbortController deadline so hung endpoints can't leave
+     * UI requests pending indefinitely. Preserves existing request options;
+     * aborts become a thrown Error with .name === 'AbortError'.
+     */
+    fetchWithTimeout: async function(url, options, timeoutMs) {
+        options = options || {};
+        timeoutMs = timeoutMs == null ? this.FETCH_TIMEOUT_MS : timeoutMs;
+        var controller = new AbortController();
+        var timer = setTimeout(function() { controller.abort(); }, timeoutMs);
+        try {
+            var opts = Object.assign({}, options, { signal: controller.signal });
+            return await fetch(url, opts);
+        } catch (e) {
+            if (e && e.name === 'AbortError') {
+                var err = new Error('Request timed out after ' + timeoutMs + 'ms');
+                err.name = 'AbortError';
+                err.status = 0;
+                throw err;
+            }
+            throw e;
+        } finally {
+            clearTimeout(timer);
+        }
+    },
+
     /**
      * POST a chat completion. `opts.model` is a qualified id; the provider and
      * wire format are resolved from it. Throws an Error with .status/.data set
@@ -475,7 +543,7 @@ window.AIProvider = {
             if (opts.temperature != null && !q.noTemperature) body.temperature = opts.temperature;
             if (opts.responseFormat) body.response_format = opts.responseFormat;
 
-            var resp = await fetch(url, {
+            var resp = await self.fetchWithTimeout(url, {
                 method: 'POST',
                 headers: headers,
                 body: JSON.stringify(body)
@@ -496,7 +564,7 @@ window.AIProvider = {
         var out = await send(quirks);
         for (var attempt = 0; attempt < 3; attempt++) {
             if (out.resp.ok && !(out.data && out.data.error)) return out.data;
-            var learned = this.learnFromError(provider.id, modelId, out.data, quirks);
+            var learned = this.learnFromError(provider.id, modelId, out.data, quirks, out.resp.status);
             if (!learned) break;
             quirks = learned;
             out = await send(quirks);
@@ -512,7 +580,7 @@ window.AIProvider = {
     QUIRK_STORAGE_KEY: 'ai-provider-quirks-v1',
 
     _quirkKey: function(providerId, modelId) {
-        return providerId + '::' + modelId;
+        return providerId + this.SEP + modelId;
     },
 
     getAllQuirks: function() {
@@ -540,9 +608,12 @@ window.AIProvider = {
     /**
      * Inspect an API error for a "this parameter isn't supported" complaint and
      * derive a corrected request shape. Returns the new quirks to retry with,
-     * or null when the error isn't something a retry would fix.
+     * or null when the error isn't something a retry would fix. Only learns
+     * from 400/422 responses.
      */
-    learnFromError: function(providerId, modelId, data, current) {
+    learnFromError: function(providerId, modelId, data, current, status) {
+        if (status !== 400 && status !== 422) return null;
+
         var msg = (data && data.error && (data.error.message || data.error)) || '';
         if (typeof msg !== 'string') return null;
 
@@ -602,7 +673,7 @@ window.AIProvider = {
         };
         if (system) body.system = system;
 
-        var resp = await fetch(provider.baseUrl.replace(/\/+$/, '') + '/messages', {
+        var resp = await this.fetchWithTimeout(provider.baseUrl.replace(/\/+$/, '') + '/messages', {
             method: 'POST',
             headers: {
                 'x-api-key': apiKey,

@@ -196,9 +196,10 @@ class DecodeTool extends Tool {
                 }
             },
             decoderTranslateToEnglish: async function() {
-                var providerId = window.AIProvider.parseModelId((localStorage.getItem('translate-model') || 'google/gemma-3-27b-it')).providerId;
-                var providerLabel = window.AIProvider.labelForModel((localStorage.getItem('translate-model') || 'google/gemma-3-27b-it'));
-                var apiKey = window.AIProvider.keyForModel((localStorage.getItem('translate-model') || 'google/gemma-3-27b-it'));
+                var model = localStorage.getItem('translate-model') || 'google/gemma-3-27b-it';
+                var providerId = window.AIProvider.parseModelId(model).providerId;
+                var providerLabel = window.AIProvider.labelForModel(model);
+                var apiKey = window.AIProvider.keyForModel(model);
                 // Fallback: check Vue data property if localStorage is empty
                 if (!apiKey && providerId === 'openrouter' && this.openrouterApiKey) {
                     apiKey = this.openrouterApiKey.trim();
@@ -214,8 +215,6 @@ class DecodeTool extends Tool {
 
                 this.decoderTranslating = true;
                 this.decoderTranslateError = '';
-
-                var model = localStorage.getItem('translate-model') || 'google/gemma-3-27b-it';
 
                 try {
                     var data = await window.AIProvider.chatCompletion([
@@ -237,8 +236,8 @@ class DecodeTool extends Tool {
                         maxTokens: 4096
                     });
 
-                    if (data.choices && data.choices[0]) {
-                        var translated = data.choices[0].message.content.trim();
+                    if (data.choices && data.choices[0] && data.choices[0].message) {
+                        var translated = (data.choices[0].message.content || '').trim();
                         this.decoderOutput = translated;
                         this.decoderResult = {
                             text: translated,

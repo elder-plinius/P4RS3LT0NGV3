@@ -4,7 +4,7 @@ A powerful web-based text transformation and steganography tool with **222** bui
 
 **Version 4.0** brings a redesigned desktop app shell, seven themes (including WCAG 2.1 AA **Accessible**), mobile utility panels, OpenRouter model curation, and responsive UI polish across all tools.
 
-The app is a **static site**: run **`npm run build`** (after `npm install`), then open **`dist/index.html`** in your browser—no local server required. **Alternatively**, you can run it as a local app over HTTP with **`npm start`** or **`npx serve dist -l 8080`** (see [Getting Started](#getting-started) below). Core transforms, decoder, and steganography work **without** calling the cloud; the AI-assisted features work with **any supported provider** — [OpenRouter](https://openrouter.ai/), OpenAI, Anthropic, Google Gemini, [audn.ai](https://audn.ai/), or any OpenAI-compatible custom endpoint — and need **network access** plus an API key for at least one provider (see [AI Providers & API Keys](#-ai-providers--api-keys) below).
+The app is a **static site**: run **`npm run build`** (after `npm install`), then open **`dist/index.html`** in your browser—no local server required. **Alternatively**, you can run it as a local app over HTTP with **`npm start`** or **`npx serve dist -l 8080`** (see [Getting Started](#getting-started) below). Core transforms, decoder, and steganography work **without** calling the cloud; the AI-assisted features work with **any supported provider** — [OpenRouter](https://openrouter.ai/), OpenAI, Anthropic, Google Gemini, [audn.ai](https://audn.ai/), or any OpenAI-compatible custom endpoint — and need **network access** plus an API key for at least one provider (see [AI Providers & API Keys](#ai-providers--api-keys) below).
 
 ## ✨ Features
 
@@ -258,7 +258,7 @@ Categories match the Transform tab and the folders under `src/transformers/` (ea
 
 ### 🛠️ **Tools** (tabs)
 
-Tabs appear in **UI order** below. AI-backed tools use whichever **AI provider** you've configured in **Advanced Settings** — you can pick any model across every provider you've added a key for — see [AI Providers & API Keys](#-ai-providers--api-keys) below.
+Tabs appear in **UI order** below. AI-backed tools use whichever **AI provider** you've configured in **Advanced Settings** — you can pick any model across every provider you've added a key for — see [AI Providers & API Keys](#ai-providers--api-keys) below.
 
 ### 🔤 **Transform**
 

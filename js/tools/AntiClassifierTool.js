@@ -1,5 +1,5 @@
 /**
- * Syntactic Anti-Classifier — linguistic transformations via OpenRouter (same key as PromptCraft).
+ * Syntactic Anti-Classifier — linguistic transformations via configured AI providers (same keys as PromptCraft).
  */
 class AntiClassifierTool extends Tool {
     constructor() {
@@ -7,7 +7,7 @@ class AntiClassifierTool extends Tool {
             id: 'anticlassifier',
             name: 'Anti-Classifier',
             icon: 'fa-robot',
-            title: 'Syntactic anti-classifier (OpenRouter)',
+            title: 'Syntactic anti-classifier (AI-powered)',
             order: 12
         });
     }

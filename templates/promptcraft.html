@@ -92,7 +92,7 @@
                     </label>
                     <label
                         class="slider-block"
-                        title="Sampling randomness: lower is more deterministic, higher is more varied (OpenRouter 0–2)."
+                        title="Sampling randomness: lower is more deterministic, higher is more varied (0–2)."
                     >
                         Temperature
                         <input
@@ -143,7 +143,7 @@
             <div v-if="!pcOutputs.length && !pcLoading && !pcError" class="pc-empty-state">
                 <i class="fas fa-wand-magic-sparkles"></i>
                 <p>Enter a prompt and choose a mutation strategy.</p>
-                <p><small>Uses OpenRouter API — requires an API key set in Advanced Settings.</small></p>
+                <p><small>Requires an API key for at least one provider in Advanced Settings → AI Providers.</small></p>
             </div>
         </div>
     </div>
