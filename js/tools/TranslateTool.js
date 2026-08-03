@@ -74,15 +74,14 @@ class TranslateTool extends Tool {
         var self = this;
         return {
             translateGetApiKey: function() {
-                var key = localStorage.getItem('openrouter-api-key') ||
-                       localStorage.getItem('plinyos-api-key') ||
-                       localStorage.getItem('openrouter_api_key') || '';
+                var providerId = window.AIProvider.parseModelId(this.translateModel).providerId;
+                var key = window.AIProvider.keyForModel(this.translateModel);
                 // Fallback: if nothing in localStorage, check the Vue data property
                 // (covers case where user typed key but forgot to click Save)
-                if (!key && this.openrouterApiKey) {
+                if (!key && providerId === 'openrouter' && this.openrouterApiKey) {
                     key = this.openrouterApiKey;
                     // Auto-save it so future calls work
-                    localStorage.setItem('openrouter-api-key', key.trim());
+                    window.AIProvider.setApiKey(providerId, key);
                 }
                 return key.trim();
             },
@@ -99,9 +98,11 @@ class TranslateTool extends Tool {
                     'Please translate the following English text into ' + langName + ':\n\n' + text;
             },
             translateTo: async function(langName) {
+                var providerId = window.AIProvider.parseModelId(this.translateModel).providerId;
+                var providerLabel = window.AIProvider.labelForModel(this.translateModel);
                 var apiKey = this.translateGetApiKey();
                 if (!apiKey) {
-                    this.translateError = 'No API key. Set your OpenRouter key in Advanced Settings in the top right.';
+                    this.translateError = 'No API key. Set your ' + providerLabel + ' key in Advanced Settings in the top right.';
                     return;
                 }
                 var input = this.transformInput;
@@ -137,62 +138,16 @@ class TranslateTool extends Tool {
                 }
 
                 try {
-                    var resp = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': 'Bearer ' + apiKey,
-                            'Content-Type': 'application/json',
-                            'HTTP-Referer': window.location.href || 'https://p4rs3lt0ngv3.app',
-                            'X-Title': 'P4RS3LT0NGV3 TranslateGemma'
-                        },
-                        body: JSON.stringify({
-                            model: model,
-                            messages: messages,
-                            temperature: 0.2,
-                            max_tokens: 4096
-                        })
+                    var data = await window.AIProvider.chatCompletion(messages, {
+                        provider: providerId,
+                        apiKey: apiKey,
+                        model: model,
+                        temperature: 0.2,
+                        maxTokens: 4096
                     });
 
-                    // Handle HTTP-level errors before parsing JSON
-                    if (!resp.ok && resp.status === 401) {
-                        this.translateError = 'Invalid API key. Check your OpenRouter key in Advanced Settings.';
-                        return;
-                    }
-                    if (!resp.ok && resp.status === 402) {
-                        this.translateError = 'Insufficient credits on your OpenRouter account. Add credits at openrouter.ai.';
-                        return;
-                    }
-                    if (!resp.ok && resp.status === 403) {
-                        this.translateError = 'Access denied. Your OpenRouter key may lack permissions for this model.';
-                        return;
-                    }
-
-                    var data;
-                    try {
-                        data = await resp.json();
-                    } catch (parseErr) {
-                        this.translateError = 'Unexpected response from OpenRouter (HTTP ' + resp.status + ')';
-                        return;
-                    }
-
-                    if (data.error) {
-                        // If TranslateGemma model not found, fall back to Gemma 3 27B
-                        if (isTranslateGemma && (data.error.code === 404 || data.error.code === 400 ||
-                            (data.error.message && data.error.message.indexOf('not found') !== -1))) {
-                            this.translateError = 'TranslateGemma not yet on OpenRouter — switching to Gemma 3 27B...';
-                            this.translateModel = 'google/gemma-3-27b-it';
-                            localStorage.setItem('translate-model', this.translateModel);
-                            this.translateLoading = false;
-                            this.translateActiveLang = '';
-                            // Retry with fallback
-                            await this.translateTo(langName);
-                            return;
-                        }
-                        var errMsg = (typeof data.error === 'string') ? data.error :
-                            (data.error.message || 'API error (code ' + (data.error.code || resp.status) + ')');
-                        this.translateError = errMsg;
-                    } else if (data.choices && data.choices[0]) {
-                        var translated = data.choices[0].message.content.trim();
+                    if (data.choices && data.choices[0] && data.choices[0].message) {
+                        var translated = (data.choices[0].message.content || '').trim();
                         this.transformOutput = translated;
                         this.activeTransform = { name: langName + ' (' + langCode + ')', category: 'translate' };
                         this.copyToClipboard(translated);
@@ -204,7 +159,27 @@ class TranslateTool extends Tool {
                         this.translateError = 'No translation returned. Try a different model.';
                     }
                 } catch (e) {
-                    this.translateError = 'Translation failed: ' + (e.message || 'Network error. Check your connection.');
+                    // If TranslateGemma model not found on OpenRouter, fall back to Gemma 3 27B
+                    if (isTranslateGemma && providerId === 'openrouter' &&
+                        (e.status === 404 || e.status === 400 || (e.message && e.message.indexOf('not found') !== -1))) {
+                        this.translateError = 'TranslateGemma not yet on OpenRouter — switching to Gemma 3 27B...';
+                        this.translateModel = 'google/gemma-3-27b-it';
+                        localStorage.setItem('translate-model', this.translateModel);
+                        this.translateLoading = false;
+                        this.translateActiveLang = '';
+                        // Retry with fallback
+                        await this.translateTo(langName);
+                        return;
+                    }
+                    if (e.status === 401) {
+                        this.translateError = 'Invalid API key. Check your ' + providerLabel + ' key in Advanced Settings.';
+                    } else if (e.status === 402) {
+                        this.translateError = 'Insufficient credits on your ' + providerLabel + ' account.';
+                    } else if (e.status === 403) {
+                        this.translateError = 'Access denied. Your ' + providerLabel + ' key may lack permissions for this model.';
+                    } else {
+                        this.translateError = 'Translation failed: ' + (e.message || 'Network error. Check your connection.');
+                    }
                 } finally {
                     this.translateLoading = false;
                     this.translateActiveLang = '';

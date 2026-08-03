@@ -7371,3 +7371,22 @@ html {
     font-size: 0.9rem;
 }
 
+
+/* Multi-provider AI settings — one row per provider, each with its own key */
+.ai-provider-row {
+    border: 1px solid var(--border-color, rgba(128, 128, 128, 0.25));
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+.ai-provider-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.ai-provider-head strong {
+    flex: 1;
+}

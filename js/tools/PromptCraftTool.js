@@ -1,5 +1,7 @@
 /**
- * PromptCraft Tool - AI-assisted prompt crafting & mutation via OpenRouter
+ * PromptCraft Tool - AI-assisted prompt crafting & mutation
+ *
+ * Uses whichever AI providers are configured in Settings.
  */
 class PromptCraftTool extends Tool {
     constructor() {
@@ -7,7 +9,7 @@ class PromptCraftTool extends Tool {
             id: 'promptcraft',
             name: 'PromptCraft',
             icon: 'fa-wand-magic-sparkles',
-            title: 'AI-assisted prompt crafting & mutation via OpenRouter',
+            title: 'AI-assisted prompt crafting & mutation',
             order: 10
         });
     }
@@ -46,13 +48,12 @@ class PromptCraftTool extends Tool {
     getVueMethods() {
         return {
             pcGetApiKey: function() {
-                var key = localStorage.getItem('openrouter-api-key') ||
-                       localStorage.getItem('plinyos-api-key') ||
-                       localStorage.getItem('openrouter_api_key') || '';
+                var providerId = window.AIProvider.parseModelId(this.pcModel).providerId;
+                var key = window.AIProvider.keyForModel(this.pcModel);
                 // Fallback: if nothing in localStorage, check the Vue data property
-                if (!key && this.openrouterApiKey) {
+                if (!key && providerId === 'openrouter' && this.openrouterApiKey) {
                     key = this.openrouterApiKey;
-                    localStorage.setItem('openrouter-api-key', key.trim());
+                    window.AIProvider.setApiKey(providerId, key);
                 }
                 return key.trim();
             },
@@ -82,9 +83,11 @@ class PromptCraftTool extends Tool {
                 this.pcLexemeAnalysis = window.LexemeAnalysis.analyze(this.pcInput);
             },
             pcRunMutation: async function() {
+                const providerId = window.AIProvider.parseModelId(this.pcModel).providerId;
+                const providerLabel = window.AIProvider.labelForModel(this.pcModel);
                 const apiKey = this.pcGetApiKey();
                 if (!apiKey) {
-                    this.pcError = 'No API key found. Set your OpenRouter key in Advanced Settings first.';
+                    this.pcError = 'No API key found. Set your ' + providerLabel + ' key in Advanced Settings first.';
                     return;
                 }
                 if (!this.pcInput.trim()) {
@@ -106,36 +109,31 @@ class PromptCraftTool extends Tool {
                 const count = Math.max(1, Math.min(10, this.pcCount));
 
                 try {
-                    const requests = [];
-                    for (let i = 0; i < count; i++) {
-                        requests.push(
-                            fetch('https://openrouter.ai/api/v1/chat/completions', {
-                                method: 'POST',
-                                headers: {
-                                    'Authorization': 'Bearer ' + apiKey,
-                                    'Content-Type': 'application/json',
-                                    'HTTP-Referer': window.location.href || 'https://p4rs3lt0ngv3.app',
-                                    'X-Title': 'P4RS3LT0NGV3 PromptCraft'
-                                },
-                                body: JSON.stringify({
-                                    model: this.pcModel,
-                                    messages: [
-                                        { role: 'system', content: systemPrompt },
-                                        { role: 'user', content: this.pcInput }
-                                    ],
-                                    temperature: temperature,
-                                    max_tokens: 2048
-                                })
-                            }).then(function(r) {
-                                if (r.status === 401) throw new Error('Invalid API key. Check your OpenRouter key in Advanced Settings.');
-                                if (r.status === 402) throw new Error('Insufficient credits on your OpenRouter account.');
-                                if (r.status === 403) throw new Error('Access denied. Your key may lack permissions for this model.');
-                                return r.json();
-                            })
-                        );
-                    }
+                    const makeRequest = () => window.AIProvider.chatCompletion([
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: this.pcInput }
+                    ], {
+                        provider: providerId,
+                        apiKey: apiKey,
+                        model: this.pcModel,
+                        temperature: temperature,
+                        maxTokens: 2048
+                    }).catch(function(e) {
+                        if (e.status === 401) throw new Error('Invalid API key. Check your ' + providerLabel + ' key in Advanced Settings.');
+                        if (e.status === 402) throw new Error('Insufficient credits on your ' + providerLabel + ' account.');
+                        if (e.status === 403) throw new Error('Access denied. Your key may lack permissions for this model.');
+                        throw e;
+                    });
 
-                    const results = await Promise.allSettled(requests);
+                    // Run the first request alone so provider/model dialect quirks
+                    // (max_completion_tokens, temperature, …) are learned before
+                    // launching the remaining variants in parallel.
+                    const first = await makeRequest();
+                    const rest = [];
+                    for (let i = 1; i < count; i++) {
+                        rest.push(makeRequest());
+                    }
+                    const results = await Promise.allSettled([Promise.resolve(first)].concat(rest));
                     const outputs = [];
                     for (const result of results) {
                         if (result.status === 'fulfilled' && result.value.choices && result.value.choices[0]) {

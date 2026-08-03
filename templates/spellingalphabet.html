@@ -7,7 +7,7 @@
                     <h3>Custom Spelling Alphabets</h3>
                 </div>
                 <p class="section-header-card-description">
-                    Build ICAO-style spelling alphabets from any theme. Generate words with OpenRouter, or fill in all 26 letters manually.
+                    Build ICAO-style spelling alphabets from any theme. Generate words with any configured AI provider, or fill in all 26 letters manually.
                     Saved alphabets appear on the Transforms page under <code>custom_spelling</code>.
                 </p>
             </div>
@@ -21,7 +21,7 @@
                 </div>
 
                 <div v-if="saAlphabets.length === 0" class="sa-empty-state">
-                    <p>No saved spelling alphabets yet. Create one manually or generate from a category with OpenRouter.</p>
+                    <p>No saved spelling alphabets yet. Create one manually or generate from a category with AI.</p>
                 </div>
 
                 <div v-else class="sa-saved-list">
@@ -63,7 +63,7 @@
                         Category / theme
                         <input type="text" v-model="saCategory" placeholder="e.g. nautical, cooking, astronomy" />
                     </label>
-                    <openrouter-model-select v-if="saHasApiKey()" v-model="saModel" label="OpenRouter model"></openrouter-model-select>
+                    <openrouter-model-select v-if="saHasApiKey()" v-model="saModel" label="Model"></openrouter-model-select>
                 </div>
 
                 <div class="sa-generate-row">
@@ -74,15 +74,15 @@
                         :disabled="saLoading || !saCategory.trim()"
                     >
                         <i class="fas fa-wand-magic-sparkles"></i>
-                        {{ saLoading ? 'Generating…' : 'Generate with OpenRouter' }}
+                        {{ saLoading ? 'Generating…' : 'Generate with AI' }}
                     </button>
                     <p v-if="!saHasApiKey()" class="sa-hint">
                         <i class="fas fa-info-circle"></i>
-                        No OpenRouter key — add one in Advanced Settings, or type each letter below manually.
+                        No API key — add one in Advanced Settings → AI Providers, or type each letter below manually.
                     </p>
                     <p v-else class="sa-hint">
                         <i class="fas fa-info-circle"></i>
-                        Defaults to free OpenRouter models (no credits needed). Generation fills the grid below — edit any letter before saving.
+                        Pick any model from your configured providers. Generation fills the grid below — edit any letter before saving.
                     </p>
                 </div>
 

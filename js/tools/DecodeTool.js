@@ -196,16 +196,17 @@ class DecodeTool extends Tool {
                 }
             },
             decoderTranslateToEnglish: async function() {
-                var apiKey = (localStorage.getItem('openrouter-api-key') ||
-                             localStorage.getItem('plinyos-api-key') ||
-                             localStorage.getItem('openrouter_api_key') || '').trim();
+                var model = localStorage.getItem('translate-model') || 'google/gemma-3-27b-it';
+                var providerId = window.AIProvider.parseModelId(model).providerId;
+                var providerLabel = window.AIProvider.labelForModel(model);
+                var apiKey = window.AIProvider.keyForModel(model);
                 // Fallback: check Vue data property if localStorage is empty
-                if (!apiKey && this.openrouterApiKey) {
+                if (!apiKey && providerId === 'openrouter' && this.openrouterApiKey) {
                     apiKey = this.openrouterApiKey.trim();
-                    localStorage.setItem('openrouter-api-key', apiKey);
+                    window.AIProvider.setApiKey(providerId, apiKey);
                 }
                 if (!apiKey) {
-                    this.decoderTranslateError = 'No API key. Set your OpenRouter key in Advanced Settings.';
+                    this.decoderTranslateError = 'No API key. Set your ' + providerLabel + ' key in Advanced Settings.';
                     return;
                 }
 
@@ -215,41 +216,28 @@ class DecodeTool extends Tool {
                 this.decoderTranslating = true;
                 this.decoderTranslateError = '';
 
-                var model = localStorage.getItem('translate-model') || 'google/gemma-3-27b-it';
-
                 try {
-                    var resp = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': 'Bearer ' + apiKey,
-                            'Content-Type': 'application/json',
-                            'HTTP-Referer': window.location.origin,
-                            'X-Title': 'P4RS3LT0NGV3 Decoder'
+                    var data = await window.AIProvider.chatCompletion([
+                        {
+                            role: 'system',
+                            content: 'You are a professional translator. Translate the following text to English. ' +
+                                'Output ONLY the English translation. No explanations, notes, or alternatives. ' +
+                                'Preserve formatting, line breaks, and structure.'
                         },
-                        body: JSON.stringify({
-                            model: model,
-                            messages: [
-                                {
-                                    role: 'system',
-                                    content: 'You are a professional translator. Translate the following text to English. ' +
-                                        'Output ONLY the English translation. No explanations, notes, or alternatives. ' +
-                                        'Preserve formatting, line breaks, and structure.'
-                                },
-                                {
-                                    role: 'user',
-                                    content: 'Translate this ' + lang + ' text to English:\n\n' + textToTranslate
-                                }
-                            ],
-                            temperature: 0.2,
-                            max_tokens: 4096
-                        })
+                        {
+                            role: 'user',
+                            content: 'Translate this ' + lang + ' text to English:\n\n' + textToTranslate
+                        }
+                    ], {
+                        provider: providerId,
+                        apiKey: apiKey,
+                        model: model,
+                        temperature: 0.2,
+                        maxTokens: 4096
                     });
 
-                    var data = await resp.json();
-                    if (data.error) {
-                        this.decoderTranslateError = data.error.message || 'API error';
-                    } else if (data.choices && data.choices[0]) {
-                        var translated = data.choices[0].message.content.trim();
+                    if (data.choices && data.choices[0] && data.choices[0].message) {
+                        var translated = (data.choices[0].message.content || '').trim();
                         this.decoderOutput = translated;
                         this.decoderResult = {
                             text: translated,

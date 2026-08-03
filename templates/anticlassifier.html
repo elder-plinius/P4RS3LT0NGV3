@@ -2,8 +2,8 @@
     <div class="transform-layout">
         <div class="transform-section anticlassifier-section">
             <div class="section-header">
-                <h3><i class="fas fa-robot"></i> Anti-Classifier <small>Syntactic transformations via OpenRouter</small></h3>
-                <p class="ac-lede">Uses the same OpenRouter API key as PromptCraft. For research into how phrasing interacts with classifiers and filters.</p>
+                <h3><i class="fas fa-robot"></i> Anti-Classifier <small>Syntactic transformations (AI-powered)</small></h3>
+                <p class="ac-lede">Uses the same AI providers as PromptCraft. For research into how phrasing interacts with classifiers and filters.</p>
             </div>
 
             <div class="input-section">
@@ -59,7 +59,7 @@
                 <openrouter-model-select v-model="acModel" label="Model"></openrouter-model-select>
                 <label
                     class="slider-block"
-                    title="Sampling randomness: lower is more deterministic, higher is more varied (OpenRouter 0–2)."
+                    title="Sampling randomness: lower is more deterministic, higher is more varied (0–2)."
                 >
                     Temperature
                     <input type="range" v-model.number="acTemperature" min="0" max="2" step="0.05" />

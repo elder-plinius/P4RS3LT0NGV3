@@ -40,6 +40,16 @@ const baseData = {
     openrouterApiKey: localStorage.getItem('openrouter-api-key') || '',
     showApiKey: false,
     apiKeySaved: false,
+    aiProviders: window.AIProvider ? window.AIProvider.getAllProviders() : [],
+    aiCatalogError: '',
+    aiKeyDrafts: {},
+    aiRevealedKeys: {},
+    aiNewProviderName: '',
+    aiNewProviderBaseUrl: '',
+    aiNewProviderKey: '',
+    aiNewProviderModels: '',
+    aiNewProviderKind: 'openai',
+    aiProviderFormOpen: false,
     openRouterModels: (window.OpenRouterModels && window.OpenRouterModels.getStaticFallback)
         ? window.OpenRouterModels.getStaticFallback()
         : [],
@@ -84,7 +94,9 @@ Vue.component('openrouter-model-select', {
             return this.$root.openRouterModelsKeyInfo;
         },
         hasApiKey: function() {
-            return this.$root.getOpenRouterApiKey ? !!this.$root.getOpenRouterApiKey() : false;
+            return window.AIProvider && window.AIProvider.getConfiguredProviders
+                ? window.AIProvider.getConfiguredProviders().length > 0
+                : false;
         },
         routerHint: function() {
             if (!this.value || !window.OpenRouterModels || !window.OpenRouterModels.getRouterHint) {
@@ -127,7 +139,7 @@ Vue.component('openrouter-model-select', {
                     'class="openrouter-model-refresh" ' +
                     '@click="refresh" ' +
                     ':disabled="loading" ' +
-                    'title="Refresh model list from OpenRouter"' +
+                    'title="Refresh model list"' +
                     'aria-label="Refresh model list"' +
                 '>' +
                     '<i class="fas" :class="loading ? \'fa-spinner fa-spin\' : \'fa-sync-alt\'"></i>' +
@@ -135,7 +147,7 @@ Vue.component('openrouter-model-select', {
             '</div>' +
             '<small v-if="error" class="openrouter-model-hint openrouter-model-hint-error">{{ error }}</small>' +
             '<small v-else-if="routerHint" class="openrouter-model-hint openrouter-model-hint-router">{{ routerHint }}</small>' +
-            '<small v-else-if="!hasApiKey" class="openrouter-model-hint">Add an OpenRouter key in Settings to load models for your account.</small>' +
+            '<small v-else-if="!hasApiKey" class="openrouter-model-hint">Add an API key in Settings → AI Providers to load models.</small>' +
             '<small v-else-if="keyInfo && keyInfo.is_free_tier" class="openrouter-model-hint">Free tier account — models marked · free need no credits.</small>' +
             '<small v-else class="openrouter-model-hint">Curate visible models in Settings → AI Models.</small>' +
         '</label>'
@@ -553,10 +565,13 @@ window.app = new Vue({
         },
 
         formatOpenRouterModelLabel(model) {
-            if (window.OpenRouterModels && window.OpenRouterModels.formatLabel) {
-                return window.OpenRouterModels.formatLabel(model);
-            }
-            return model && model.name ? model.name : '';
+            if (!model) return '';
+            // Cross-provider dropdown: prefix with the provider so identically
+            // named models from different providers stay distinguishable.
+            var base = (window.OpenRouterModels && window.OpenRouterModels.formatLabel)
+                ? window.OpenRouterModels.formatLabel(model)
+                : (model.name || model.modelId || '');
+            return model.providerName ? model.providerName + ' · ' + base : base;
         },
 
         isOpenRouterModelEnabled(modelId) {
@@ -566,12 +581,18 @@ window.app = new Vue({
 
         rebuildOpenRouterDropdown() {
             if (!window.OpenRouterModels) return;
+            // Curation (enable/disable) is an OpenRouter-catalog concept, so it
+            // only filters the OpenRouter rows; other providers' models always
+            // show. Everything is merged into one cross-provider dropdown.
             var pinned = window.OpenRouterModels.getPinnedModelIds(this);
-            this.openRouterModels = window.OpenRouterModels.filterForDropdown(
+            var curatedOR = window.OpenRouterModels.filterForDropdown(
                 this.openRouterModelsCatalog,
                 this.openRouterModelsDisabled,
-                pinned
+                pinned.map(function(id) {
+                    return window.AIProvider.parseModelId(id).modelId;
+                })
             );
+            this.openRouterModels = window.AIProvider.getAllModels(curatedOR);
         },
 
         toggleOpenRouterModelEnabled(modelId) {
@@ -618,19 +639,55 @@ window.app = new Vue({
             if (!window.OpenRouterModels || !this.openRouterModels.length) return;
             var models = this.openRouterModels;
             var ensure = window.OpenRouterModels.ensureValidSelection.bind(window.OpenRouterModels);
+            // Saved preferences predate qualified ids; a bare id means OpenRouter.
+            var qualify = function(id) {
+                if (!id) return id;
+                return id.indexOf(window.AIProvider.SEP) === -1
+                    ? window.AIProvider.qualify('openrouter', id)
+                    : id;
+            };
+            var pick = function(current, stored, fallback) {
+                return ensure(qualify(current), models, qualify(stored || fallback));
+            };
 
             if (typeof this.pcModel !== 'undefined') {
-                this.pcModel = ensure(this.pcModel, models, localStorage.getItem('pc-model') || 'openrouter/auto');
+                this.pcModel = pick(this.pcModel, localStorage.getItem('pc-model'), 'openrouter/auto');
             }
             if (typeof this.acModel !== 'undefined') {
-                this.acModel = ensure(this.acModel, models, localStorage.getItem('ac-model') || 'openrouter/auto');
+                this.acModel = pick(this.acModel, localStorage.getItem('ac-model'), 'openrouter/auto');
             }
             if (typeof this.saModel !== 'undefined') {
-                this.saModel = ensure(this.saModel, models, localStorage.getItem('sa-model') || 'openrouter/free');
+                this.saModel = pick(this.saModel, localStorage.getItem('sa-model'), 'openrouter/free');
             }
             if (typeof this.translateModel !== 'undefined') {
-                this.translateModel = ensure(this.translateModel, models, localStorage.getItem('translate-model') || 'google/gemma-3-27b-it');
+                this.translateModel = pick(this.translateModel, localStorage.getItem('translate-model'), 'google/gemma-3-27b-it');
             }
+        },
+
+        // Pull live model lists from every configured provider that exposes a
+        // /models endpoint. A failure is non-fatal — that provider just falls
+        // back to its built-in list, so one bad key can't empty the dropdown.
+        refreshProviderCatalogs: async function(force) {
+            var providers = window.AIProvider.getConfiguredProviders()
+                .filter(function(p) { return p.id !== 'openrouter'; });
+            if (!providers.length) {
+                this.aiCatalogError = '';
+                return;
+            }
+            var failures = [];
+            await Promise.all(providers.map(async function(p) {
+                try {
+                    await window.AIProvider.fetchModels(p.id, { force: !!force });
+                } catch (e) {
+                    failures.push(p.name + (e && e.status === 401 ? ' (invalid key)' : ''));
+                    console.warn('Model list fetch failed for ' + p.name + ':', e);
+                }
+            }));
+            // Wording stays accurate whether the provider falls back to its
+            // built-in list or keeps a previously fetched one.
+            this.aiCatalogError = failures.length
+                ? 'Could not refresh models from: ' + failures.join(', ')
+                : '';
         },
 
         refreshOpenRouterModels: async function(force) {
@@ -640,9 +697,22 @@ window.app = new Vue({
             this.openRouterModelsLoading = true;
             this.openRouterModelsError = '';
 
-            var apiKey = this.getOpenRouterApiKey();
-
             try {
+                // Other providers' catalogs first, so the dropdown rebuild below
+                // picks them up in the same pass.
+                await this.refreshProviderCatalogs(force);
+
+                // OpenRouter has its own catalog path (curation + key info); skip
+                // it entirely when no OpenRouter key is configured.
+                if (!window.AIProvider.hasApiKey('openrouter')) {
+                    this.openRouterModelsError = '';
+                    this.openRouterModelsKeyInfo = null;
+                    this.rebuildOpenRouterDropdown();
+                    this.syncOpenRouterModelSelections();
+                    return;
+                }
+
+                var apiKey = this.getOpenRouterApiKey();
                 var models = await window.OpenRouterModels.fetch(apiKey, { force: !!force });
                 this.openRouterModelsCatalog = models;
                 this.rebuildOpenRouterDropdown();
@@ -670,27 +740,92 @@ window.app = new Vue({
             }
         },
         
-        saveApiKey() {
-            var trimmed = (this.openrouterApiKey || '').trim();
-            if (trimmed) {
-                this.openrouterApiKey = trimmed;
-                localStorage.setItem('openrouter-api-key', trimmed);
-                this.apiKeySaved = true;
-                this.showNotification('API key saved', 'success');
-                setTimeout(() => { this.apiKeySaved = false; }, 2000);
-                this.refreshOpenRouterModels(true);
-            }
+        refreshAiProviders() {
+            this.aiProviders = window.AIProvider.getAllProviders();
+            var drafts = {};
+            var revealed = {};
+            this.aiProviders.forEach((p) => {
+                drafts[p.id] = window.AIProvider.getApiKey(p.id);
+                revealed[p.id] = !!this.aiRevealedKeys[p.id];
+            });
+            this.aiKeyDrafts = drafts;
+            this.aiRevealedKeys = revealed;
         },
 
-        clearApiKey() {
-            this.openrouterApiKey = '';
-            this.showApiKey = false;
-            localStorage.removeItem('openrouter-api-key');
-            localStorage.removeItem('openrouter_api_key');
-            localStorage.removeItem('plinyos-api-key');
-            this.showNotification('API key cleared', 'success');
-            this.openRouterModelsKeyInfo = null;
+        aiProviderConfigured(id) {
+            return !!(window.AIProvider.getApiKey(id) || '').trim();
+        },
+
+        aiProviderModelCount(id) {
+            if (id === 'openrouter') return this.openRouterModelsCatalog.length;
+            var p = window.AIProvider.getProvider(id);
+            return p ? window.AIProvider.modelsFor(p).length : 0;
+        },
+
+        toggleAiKeyVisible(id) {
+            this.$set(this.aiRevealedKeys, id, !this.aiRevealedKeys[id]);
+        },
+
+        saveAiProviderKey(id) {
+            var key = (this.aiKeyDrafts[id] || '').trim();
+            if (!key) return;
+            window.AIProvider.setApiKey(id, key);
+            if (id === 'openrouter') {
+                this.openrouterApiKey = key;
+            }
+            this.refreshAiProviders();
+            this.apiKeySaved = true;
+            this.showNotification(window.AIProvider.getLabel(id) + ' key saved', 'success');
+            setTimeout(() => { this.apiKeySaved = false; }, 2000);
             this.refreshOpenRouterModels(true);
+        },
+
+        clearAiProviderKey(id) {
+            window.AIProvider.clearApiKey(id);
+            if (id === 'openrouter') {
+                this.openrouterApiKey = '';
+                this.openRouterModelsKeyInfo = null;
+            }
+            this.refreshAiProviders();
+            this.showNotification(window.AIProvider.getLabel(id) + ' key cleared', 'success');
+            this.refreshOpenRouterModels(true);
+        },
+
+        addAiCustomProvider() {
+            var name = (this.aiNewProviderName || '').trim();
+            var baseUrl = (this.aiNewProviderBaseUrl || '').trim();
+            if (!name || !baseUrl) {
+                this.showNotification('Name and base URL are required', 'error');
+                return;
+            }
+            var id = window.AIProvider.addCustomProvider({
+                name: name,
+                baseUrl: baseUrl,
+                kind: this.aiNewProviderKind,
+                apiKey: this.aiNewProviderKey,
+                models: this.aiNewProviderModels
+            });
+            if (!id) {
+                this.showNotification('Base URL must be an absolute http(s) URL (e.g. https://api.example.com/v1)', 'error');
+                return;
+            }
+            this.aiNewProviderName = '';
+            this.aiNewProviderBaseUrl = '';
+            this.aiNewProviderKey = '';
+            this.aiNewProviderModels = '';
+            this.aiNewProviderKind = 'openai';
+            this.aiProviderFormOpen = false;
+            this.refreshAiProviders();
+            this.showNotification('Provider added', 'success');
+            this.refreshOpenRouterModels(false);
+        },
+
+        removeAiCustomProvider(id) {
+            if (!window.confirm('Remove provider "' + window.AIProvider.getLabel(id) + '"?')) return;
+            window.AIProvider.removeCustomProvider(id);
+            this.refreshAiProviders();
+            this.showNotification('Provider removed', 'success');
+            this.refreshOpenRouterModels(false);
         },
 
         setupPasteHandlers() {
@@ -732,6 +867,7 @@ window.app = new Vue({
             this.registeredTools = window.toolRegistry.getAll();
         }
 
+        this.refreshAiProviders();
         this.refreshOpenRouterModels(false);
 
         var initialRoute = window.TabRouting && window.TabRouting.parse();
