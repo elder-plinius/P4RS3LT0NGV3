@@ -462,23 +462,115 @@ window.AIProvider = {
             headers['X-Title'] = 'P4RS3LT0NGV3';
         }
 
-        var body = {
-            model: modelId,
-            messages: messages,
-            max_tokens: opts.maxTokens || 4096
+        var url = provider.baseUrl.replace(/\/+$/, '') + '/chat/completions';
+        var quirks = this.getQuirks(provider.id, modelId);
+        var self = this;
+
+        var send = async function(q) {
+            var body = {
+                model: modelId,
+                messages: messages
+            };
+            body[q.maxTokensParam || 'max_tokens'] = opts.maxTokens || 4096;
+            if (opts.temperature != null && !q.noTemperature) body.temperature = opts.temperature;
+            if (opts.responseFormat) body.response_format = opts.responseFormat;
+
+            var resp = await fetch(url, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(body)
+            });
+            var data = await self._parseJson(resp, provider.name);
+            return { resp: resp, data: data };
         };
-        if (opts.temperature != null) body.temperature = opts.temperature;
-        if (opts.responseFormat) body.response_format = opts.responseFormat;
 
-        var resp = await fetch(provider.baseUrl.replace(/\/+$/, '') + '/chat/completions', {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify(body)
-        });
+        // The OpenAI-compatible surface isn't uniform: newer OpenAI models want
+        // max_completion_tokens instead of max_tokens, and reasoning models
+        // reject a non-default temperature. Rather than hardcode a model list
+        // that goes stale, learn the provider's dialect from its own errors.
+        // A model can violate several rules at once (gpt-5 rejects both of the
+        // above), and each rejection only reports one — so keep correcting
+        // until the request stops earning a new correction. Bounded by the
+        // number of quirks we know how to fix; the result is remembered, so
+        // this converges on the first call and costs nothing afterwards.
+        var out = await send(quirks);
+        for (var attempt = 0; attempt < 3; attempt++) {
+            if (out.resp.ok && !(out.data && out.data.error)) return out.data;
+            var learned = this.learnFromError(provider.id, modelId, out.data, quirks);
+            if (!learned) break;
+            quirks = learned;
+            out = await send(quirks);
+        }
+        if (out.resp.ok && !(out.data && out.data.error)) return out.data;
 
-        var data = await this._parseJson(resp, provider.name);
-        this._throwIfError(resp, data, provider.name);
-        return data;
+        this._throwIfError(out.resp, out.data, provider.name);
+        return out.data;
+    },
+
+    // ---- per-provider request-dialect quirks -------------------------------
+
+    QUIRK_STORAGE_KEY: 'ai-provider-quirks-v1',
+
+    _quirkKey: function(providerId, modelId) {
+        return providerId + '::' + modelId;
+    },
+
+    getAllQuirks: function() {
+        try {
+            return JSON.parse(localStorage.getItem(this.QUIRK_STORAGE_KEY) || '{}') || {};
+        } catch (e) {
+            return {};
+        }
+    },
+
+    getQuirks: function(providerId, modelId) {
+        return this.getAllQuirks()[this._quirkKey(providerId, modelId)] || {};
+    },
+
+    setQuirks: function(providerId, modelId, quirks) {
+        try {
+            var all = this.getAllQuirks();
+            all[this._quirkKey(providerId, modelId)] = quirks;
+            localStorage.setItem(this.QUIRK_STORAGE_KEY, JSON.stringify(all));
+        } catch (e) {
+            console.warn('Failed to save provider quirks:', e);
+        }
+    },
+
+    /**
+     * Inspect an API error for a "this parameter isn't supported" complaint and
+     * derive a corrected request shape. Returns the new quirks to retry with,
+     * or null when the error isn't something a retry would fix.
+     */
+    learnFromError: function(providerId, modelId, data, current) {
+        var msg = (data && data.error && (data.error.message || data.error)) || '';
+        if (typeof msg !== 'string') return null;
+
+        var next = Object.assign({}, current);
+        var changed = false;
+
+        // "Unsupported parameter: 'max_tokens' is not supported with this
+        //  model. Use 'max_completion_tokens' instead."
+        if (/max_completion_tokens/.test(msg) && next.maxTokensParam !== 'max_completion_tokens') {
+            next.maxTokensParam = 'max_completion_tokens';
+            changed = true;
+        } else if (/max_tokens/.test(msg) && /unsupported|not supported|unrecognized/i.test(msg)
+                   && next.maxTokensParam === 'max_completion_tokens') {
+            // Inverse case: an endpoint that only knows max_tokens.
+            next.maxTokensParam = 'max_tokens';
+            changed = true;
+        }
+
+        // "Unsupported value: 'temperature' does not support 0.2 with this
+        //  model. Only the default (1) is supported."
+        if (/temperature/.test(msg) && /unsupported|not support|only the default/i.test(msg) && !next.noTemperature) {
+            next.noTemperature = true;
+            changed = true;
+        }
+
+        if (!changed) return null;
+        this.setQuirks(providerId, modelId, next);
+        return next;
     },
 
     /**
