@@ -4,7 +4,7 @@ A powerful web-based text transformation and steganography tool with **222** bui
 
 **Version 4.0** brings a redesigned desktop app shell, seven themes (including WCAG 2.1 AA **Accessible**), mobile utility panels, OpenRouter model curation, and responsive UI polish across all tools.
 
-The app is a **static site**: run **`npm run build`** (after `npm install`), then open **`dist/index.html`** in your browser—no local server required. **Alternatively**, you can run it as a local app over HTTP with **`npm start`** or **`npx serve dist -l 8080`** (see [Getting Started](#getting-started) below). Core transforms, decoder, and steganography work **without** calling the cloud; features that use [OpenRouter](https://openrouter.ai/) need **network access** and an API key (see below).
+The app is a **static site**: run **`npm run build`** (after `npm install`), then open **`dist/index.html`** in your browser—no local server required. **Alternatively**, you can run it as a local app over HTTP with **`npm start`** or **`npx serve dist -l 8080`** (see [Getting Started](#getting-started) below). Core transforms, decoder, and steganography work **without** calling the cloud; the AI-assisted features work with **any supported provider** — [OpenRouter](https://openrouter.ai/), OpenAI, Anthropic, Google Gemini, [audn.ai](https://audn.ai/), or any OpenAI-compatible custom endpoint — and need **network access** plus an API key for at least one provider (see [AI Providers & API Keys](#-ai-providers--api-keys) below).
 
 ## ✨ Features
 
@@ -258,7 +258,7 @@ Categories match the Transform tab and the folders under `src/transformers/` (ea
 
 ### 🛠️ **Tools** (tabs)
 
-Tabs appear in **UI order** below. **OpenRouter** (optional or required per tool) uses the key in **Advanced Settings** — see **OpenRouter API Key Setup** below.
+Tabs appear in **UI order** below. AI-backed tools use whichever **AI provider** you've configured in **Advanced Settings** — you can pick any model across every provider you've added a key for — see [AI Providers & API Keys](#-ai-providers--api-keys) below.
 
 ### 🔤 **Transform**
 
@@ -268,14 +268,14 @@ Tabs appear in **UI order** below. **OpenRouter** (optional or required per tool
 - **Per-transform options**: Gear icon where a transform exposes settings.
 - **Keyboard shortcut**: **T** (shown in the tab title).
 
-### 🌐 **AI Translation** (via OpenRouter)
+### 🌐 **AI Translation** (AI-powered)
 
 *Lives on the **Transform** tab — not a separate tab.*
 
 - **20+ Languages**: Major world languages (Spanish, French, Chinese, Japanese, Korean, etc.)
 - **Dead & Exotic Languages**: Latin, Sanskrit, Ancient Greek, Sumerian, Akkadian, Old English, and more
 - **Custom Languages**: Add any language on-the-fly
-- **Multiple Models**: Gemma 3, Gemini 2.5 Flash, TranslateGemma (purpose-built translation models)
+- **Any configured model**: Pick from every provider you've set up (OpenRouter, OpenAI, Anthropic, Google, audn.ai, custom); translation models like Gemma 3 / TranslateGemma still work great here
 - **TranslateGemma Prompt Format**: Uses Google's optimized prompt template for high-quality translation
 - **Auto-Fallback**: If a model is unavailable, automatically falls back to Gemma 3 27B
 
@@ -286,7 +286,7 @@ Tabs appear in **UI order** below. **OpenRouter** (optional or required per tool
 - **Fallback**: Tries other decoders if the primary guess fails.
 - **Real-time**: Updates as you type.
 - **Script & language hints**: Unicode script ranges and Latin word-marker heuristics for common languages.
-- **AI translate to English** (optional, OpenRouter): When text looks foreign, optional one-shot translate to English.
+- **AI translate to English** (optional, AI-powered): When text looks foreign, optional one-shot translate to English via your chosen provider.
 - **Deep link**: `#decoder` in the URL opens this tab directly.
 
 ### 😀 **Emoji** (Steganography)
@@ -331,7 +331,7 @@ Tabs appear in **UI order** below. **OpenRouter** (optional or required per tool
 ### 🔤 **Spelling Alphabets**
 
 - **Custom ICAO-style alphabets**: One word per letter A–Z, like NATO/ICAO phonetic spelling.
-- **OpenRouter (optional)**: Enter a category/theme and generate a full alphabet; edit any letter before saving.
+- **AI generate (optional)**: Enter a category/theme and generate a full alphabet with any configured provider/model; edit any letter before saving.
 - **Manual mode**: No API key required — fill in all 26 letters yourself.
 - **Saved locally**: Alphabets persist in browser `localStorage` as JSON.
 - **Transforms integration**: Each saved alphabet appears on the Transforms page under `custom_spelling`.
@@ -353,19 +353,18 @@ Tabs appear in **UI order** below. **OpenRouter** (optional or required per tool
 - **Copy & reuse**: Send decoded text to the Generate tab with one click.
 - **Offline-friendly**: QR/barcode libraries (`qrcode`, JsBarcode, ZXing) are bundled into `js/vendor/` at build time — no runtime CDN for this tab.
 
-### 🪄 **PromptCraft** (via OpenRouter)
+### 🪄 **PromptCraft** (AI-powered)
 
 - **9 Mutation Strategies**: Rephrase, Obfuscate, Role-Play Wrap, Multi-Language, Expand, Compress, Metaphor, Fragment, and Custom
-- **48+ Models**: Frontier (Claude, GPT, Gemini, Grok), Reasoning (o3, o4, DeepSeek R1), Fast (Haiku, Mini), Code-specialized, Open Source (Llama, Qwen), and Search/Research 
-models
+- **Models from every provider**: Frontier (Claude, GPT, Gemini, Grok), Reasoning (o3, o4, DeepSeek R1), Fast (Haiku, Mini), Code-specialized, Open Source (Llama, Qwen) — from OpenRouter plus any OpenAI/Anthropic/Google/audn.ai/custom key you've added, all in one dropdown
 - **Parallel Variants**: Generate 1-10 variants simultaneously with diverse temperature settings
 - **Copy & iterate**: Copy any variant or feed it back as input for iterative refinement
 
-### 🤖 **Anti-Classifier** (via OpenRouter)
+### 🤖 **Anti-Classifier** (AI-powered)
 
 - **Purpose**: Syntactic / paraphrase-style rewrites for research-style prompts.
 - **Controls**: Model, temperature, max tokens.
-- **Same key**: Uses the same OpenRouter API key as Translation and PromptCraft.
+- **Shared providers**: Uses the same configured AI providers/keys as Translation and PromptCraft; pick any model from the unified dropdown.
 
 ### 📱 **User Experience**
 - **Themes**: **Advanced Settings** → Theme (Dark, Light, **Accessible**, BT6, Pliny, Cyberpunk, Wild West) — press **`D`** to cycle; choice saved in the browser
@@ -376,23 +375,41 @@ models
 - **Keyboard Shortcuts**: Quick access to features (including **`D`** for theme cycle)
 - **Responsive Design**: Works on all device sizes
 - **Accessibility**: Screen reader friendly with proper ARIA labels
-- **Side panels**: Glitch token browser (optional data), end-sequence / delimiter strings for research, and **Advanced Settings** (OpenRouter API key, model curation, steganography tuning)
+- **Side panels**: Glitch token browser (optional data), end-sequence / delimiter strings for research, and **Advanced Settings** (AI provider keys, model selection/curation, steganography tuning)
 - **Deep links**: Open a specific tool tab via URL hash — e.g. `#decoder`, `#steganography`, `#codes`, `#codes/decode` (browser back/forward supported)
 
 Contributors: see **[docs/THEMES.md](docs/THEMES.md)** for how to add or edit themes.
 
-### 🔑 **OpenRouter API Key Setup**
+### 🔑 **AI Providers & API Keys**
 
-**AI Translation**, **PromptCraft**, **Anti-Classifier**, and **Spelling Alphabets** (optional generate) require an [OpenRouter](https://openrouter.ai/) API key. **Decoder**’s optional “translate to English” also uses OpenRouter when enabled. The Spelling Alphabets tool works fully without a key if you enter letters manually.
+**AI Translation**, **PromptCraft**, **Anti-Classifier**, and **Spelling Alphabets** (optional generate) call a cloud AI provider. **Decoder**’s optional “translate to English” does too when enabled. The Spelling Alphabets tool works fully without a key if you enter letters manually.
 
-1. Create an account at [openrouter.ai](https://openrouter.ai/)
-2. Generate an API key (starts with `sk-or-...`)
-3. In P4RS3LT0NGV3, open **Advanced Settings** from the utility dock (desktop) or the **columns** icon in the header (mobile)
-4. Paste your key and click **Save Key**
-5. Choose which OpenRouter models appear in Translation, PromptCraft, Anti-Classifier, and related dropdowns
-6. Your key is stored locally in your browser only — never sent anywhere except OpenRouter
+The AI backend is **multi-provider**: configure as many providers as you like at once, each with its own key, and pick any model across all of them from a single dropdown — there is **no "active provider" to switch between**. The model you choose determines which provider (and key) the request uses.
 
-> **Tip:** Some models (like Gemma 3) are free on OpenRouter. Frontier models (Claude, GPT, Gemini Pro) require credits.
+**Built-in providers:**
+
+| Provider | Key format | Notes |
+|----------|-----------|-------|
+| [OpenRouter](https://openrouter.ai/) | `sk-or-...` | Hundreds of models; curate which appear in dropdowns |
+| [OpenAI](https://platform.openai.com/) | `sk-...` | gpt-5, o3, gpt-4.1, … |
+| [Anthropic](https://console.anthropic.com/) | `sk-ant-...` | Claude Opus / Sonnet / Haiku |
+| [Google Gemini](https://aistudio.google.com/) | `AIza...` | Gemini 2.5 Pro/Flash, Gemma (OpenAI-compatible endpoint) |
+| [audn.ai](https://audn.ai/) | `sk_live_...` | |
+| **Custom** | any | Add any **OpenAI-compatible** or **Anthropic Messages** endpoint by base URL |
+
+**Setup:**
+
+1. Create an account with whichever provider(s) you want and generate an API key.
+2. In P4RS3LT0NGV3, open **Advanced Settings** from the utility dock (desktop) or the **columns** icon in the header (mobile).
+3. Paste each provider's key and save it. Add a **Custom** provider by entering a name, base URL, wire format (OpenAI-compatible or Anthropic), and key.
+4. Models are **fetched live** from each configured provider (cached ~1h); if a provider has no listable models the app falls back to a sensible built-in list. Curate/pick which models appear in the dropdowns.
+5. Choose a model in any AI tool — the correct provider and key are resolved automatically.
+
+**Auto-adapting requests:** the app learns each model's request dialect from its own error responses, so it "just works" across providers — e.g. newer OpenAI models that require `max_completion_tokens` instead of `max_tokens`, and reasoning models that reject a non-default `temperature`, are handled transparently and remembered.
+
+> **Privacy:** keys are stored **locally in your browser only** and are sent solely to the provider that owns the model you pick.
+>
+> **Tip:** Some models (like Gemma 3 on OpenRouter/Google) are free. Frontier models (Claude, GPT, Gemini Pro) require credits with their provider.
 
 ## 🚀 **Getting Started**
 
@@ -508,11 +525,13 @@ npm run preview            # npm run build, then serve dist/
 - ✅ **Reverse Functions**: Added missing reverse functions for many transforms
 
 ### **New Features**
+- 🆕 **Multi-provider AI**: Configure OpenRouter, OpenAI, Anthropic, Google Gemini, audn.ai, and custom OpenAI-compatible/Anthropic endpoints at once — each with its own key — and pick any model across all of them from one dropdown (no "active provider" to switch)
+- 🆕 **Live model catalogs**: Models are fetched from each configured provider's API (cached), with graceful fallback to built-in lists
+- 🆕 **Auto-adapting requests**: Learns each model's parameter dialect from its errors (e.g. `max_completion_tokens` vs `max_tokens`, reasoning-model `temperature` limits) so requests succeed across providers without hardcoding
 - 🆕 **Codes tool**: Generate QR codes and barcodes (Code 128, EAN-13, Code 39); decode from uploaded images client-side
 - 🆕 **URL deep links**: Jump to any tool tab with `#tab` hashes (e.g. `#codes/decode`)
-- 🆕 **AI Translation**: Translate to 20+ languages (including dead/exotic) via OpenRouter using TranslateGemma prompt format
-- 🆕 **PromptCraft Tool**: AI-powered prompt mutation with 9 strategies and 48+ models
-- 🆕 **OpenRouter Integration**: Unified API key management for all AI-powered features
+- 🆕 **AI Translation**: Translate to 20+ languages (including dead/exotic) using the TranslateGemma prompt format
+- 🆕 **PromptCraft Tool**: AI-powered prompt mutation with 9 strategies across every configured provider
 - 🆕 **222 Transformations**: Full catalog of encodings, ciphers, Unicode styles, symbol alphabets, SignWriting, and technical codes (see README transform list)
 - 🆕 **More Encodings/Ciphers**: Base58, Base62, Vigenère, Rail Fence, Roman Numerals
 - 🆕 **Category Organization**: Better organized transform categories
