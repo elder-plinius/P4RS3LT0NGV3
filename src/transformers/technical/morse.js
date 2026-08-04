@@ -34,7 +34,13 @@ export default new BaseTransformer({
             }
             return revMap;
         },
-        func: function(text, decode = false) {
+        // Second arg is the shared options object every other transform takes.
+        // It used to be a bare `decode` boolean, which silently broke encoding:
+        // the app always passes an options object, and `{}` is truthy, so every
+        // encode request ran as a decode and returned "". Accept both — `true`
+        // for the internal reverse() call, or `{ decode: true }` from options.
+        func: function(text, options) {
+            const decode = options === true || !!(options && options.decode === true);
             if (decode) {
                 // Decode mode
                 const revMap = this.reverseMap();
@@ -50,7 +56,7 @@ export default new BaseTransformer({
             }
         },
         preview: function(text) {
-            if (!text) return '[base32]';
+            if (!text) return '[morse]';
             const result = this.func(text.slice(0, 2));
             return result + '...';
         },
