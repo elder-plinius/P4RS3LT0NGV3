@@ -58,20 +58,31 @@ indexContent = indexContent.replace(/\r\n/g, '\n');
 
 // Find the tool-content-container
 const startMarker = '<div id="tool-content-container"';
-const endMarker = '</div>\n            </main>';
 
 const startIndex = indexContent.indexOf(startMarker);
 const startTagEnd = indexContent.indexOf('>', startIndex);
-const endIndex = indexContent.indexOf(endMarker, startTagEnd);
+const endIndex = indexContent.indexOf('</div>', startTagEnd);
 
 if (startIndex === -1 || startTagEnd === -1 || endIndex === -1) {
     console.error('\n❌ Could not find tool content container markers');
     process.exit(1);
 }
 
+// Find the </main> tag that follows the container's closing </div>
+// Use regex to handle both Unix (\n) and Windows (\r\n) line endings
+const afterClosingDiv = indexContent.substring(endIndex + '</div>'.length);
+const mainMatch = afterClosingDiv.match(/^\r?\n\s*<\/main>/);
+
+if (!mainMatch) {
+    console.error('\n❌ Could not find </main> after container closing </div>');
+    process.exit(1);
+}
+
+const endIndex2 = endIndex + '</div>'.length + mainMatch[0].length;
+
 // Build the replacement content
 const before = indexContent.substring(0, startTagEnd + 1);
-const after = indexContent.substring(endIndex);
+const after = indexContent.substring(endIndex2);
 
 const replacement = `
                 <!-- Tool templates injected from templates/ directory -->
