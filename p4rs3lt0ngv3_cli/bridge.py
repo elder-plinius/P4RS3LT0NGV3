@@ -64,16 +64,17 @@ def list_transforms() -> list[TransformInfo]:
                 input_kind=item.get("inputKind", "textarea"),
                 configurable_options=[
                     TransformOption(
-                        id=opt["id"],
-                        label=opt["label"],
-                        type=opt["type"],
+                        id=opt_id,
+                        label=opt.get("label", f"option_{i}"),
+                        type=opt.get("type", "text"),
                         default=opt.get("default"),
                         min=opt.get("min"),
                         max=opt.get("max"),
                         step=opt.get("step"),
                         options=opt.get("options"),
                     )
-                    for opt in item.get("configurableOptions", [])
+                    for i, opt in enumerate(item.get("configurableOptions", []))
+                    if (opt_id := opt.get("id") or opt.get("key") or opt.get("label", "").lower().replace(" ", "_"))
                 ],
             )
         )
@@ -94,16 +95,17 @@ def inspect_transform(transform_key: str) -> TransformInfo:
         input_kind=item.get("inputKind", "textarea"),
         configurable_options=[
             TransformOption(
-                id=opt["id"],
-                label=opt["label"],
-                type=opt["type"],
+                id=opt_id,
+                label=opt.get("label", f"option_{i}"),
+                type=opt.get("type", "text"),
                 default=opt.get("default"),
                 min=opt.get("min"),
                 max=opt.get("max"),
                 step=opt.get("step"),
                 options=opt.get("options"),
             )
-            for opt in item.get("configurableOptions", [])
+            for i, opt in enumerate(item.get("configurableOptions", []))
+            if (opt_id := opt.get("id") or opt.get("key") or opt.get("label", "").lower().replace(" ", "_"))
         ],
     )
 

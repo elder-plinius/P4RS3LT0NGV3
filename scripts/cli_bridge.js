@@ -38,7 +38,7 @@ function buildRegistry() {
                 description: transform.description || '',
                 inputKind: transform.inputKind || 'textarea',
                 configurableOptions: (transform.configurableOptions || []).map((opt) => ({
-                    id: opt.id,
+                    id: opt.id || opt.key,
                     label: opt.label,
                     type: opt.type,
                     default: opt.default,
