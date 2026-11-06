@@ -112,3 +112,42 @@ def test_slash_command_supports_inspect() -> None:
     process = run_cli("/inspect", "caesar", "--json")
     payload = parse_json_output(process)
     assert payload["key"] == "caesar"
+
+
+def test_list_survives_transforms_with_missing_option_id() -> None:
+    """Regression: emoji_encoding has a configurableOption without 'id'."""
+    process = run_cli("list", "--json")
+    payload = parse_json_output(process)
+    emoji = [t for t in payload if t["key"] == "emoji_encoding"]
+    assert emoji, "emoji_encoding must appear in listing"
+
+
+def test_inspect_resolves_option_id_from_key_field() -> None:
+    """Regression: emoji_encoding uses 'key' not 'id' in its option def."""
+    process = run_cli("inspect", "emoji_encoding", "--json")
+    payload = parse_json_output(process)
+    assert payload["key"] == "emoji_encoding"
+    opts = payload["options"]
+    assert opts, "emoji_encoding should expose its options"
+    assert opts[0]["id"] == "multibase", "id should resolve from JS 'key' field"
+
+
+def test_emoji_encoding_round_trip() -> None:
+    encoded = run_cli("encode", "--transform", "emoji_encoding", "--text", "test")
+    assert encoded.returncode == 0, encoded.stderr
+    decoded = run_cli("decode", "--transform", "emoji_encoding", "--text", encoded.stdout.strip())
+    assert decoded.returncode == 0, decoded.stderr
+    assert decoded.stdout.strip() == "test"
+
+
+def test_emoji_encoding_multibase_option_works() -> None:
+    """Regression: option keyed by 'key' field must pass through to JS."""
+    without = run_cli("encode", "--transform", "emoji_encoding", "--text", "a")
+    assert without.returncode == 0, without.stderr
+    with_prefix = run_cli(
+        "encode", "--transform", "emoji_encoding", "--text", "a",
+        "--option", "multibase=true",
+    )
+    assert with_prefix.returncode == 0, with_prefix.stderr
+    assert with_prefix.stdout.strip().startswith("\U0001f680"), "multibase prefix should prepend rocket emoji"
+    assert len(with_prefix.stdout.strip()) > len(without.stdout.strip())
